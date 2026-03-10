@@ -1,9 +1,8 @@
-import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
-import process from 'node:process';
+import {execa} from 'execa';
 import {getModelPath, modelDisplayNames} from './models.js';
 
 const require = createRequire(import.meta.url);
@@ -33,27 +32,23 @@ function sherpaOnnx(): SherpaOnnx {
 	return _sherpaOnnx;
 }
 
-function convertToWav(inputPath: string): string {
+async function convertToWav(inputPath: string): Promise<string> {
 	const outputPath = path.join(os.tmpdir(), `coli-${Date.now()}.wav`);
 	try {
-		execFileSync(
-			'ffmpeg',
-			[
-				'-i',
-				inputPath,
-				'-ar',
-				'16000',
-				'-ac',
-				'1',
-				'-f',
-				'wav',
-				'-acodec',
-				'pcm_s16le',
-				outputPath,
-				'-y',
-			],
-			{stdio: 'pipe'},
-		);
+		await execa('ffmpeg', [
+			'-i',
+			inputPath,
+			'-ar',
+			'16000',
+			'-ac',
+			'1',
+			'-f',
+			'wav',
+			'-acodec',
+			'pcm_s16le',
+			outputPath,
+			'-y',
+		]);
 	} catch {
 		throw new Error(
 			'Failed to convert audio file. Please make sure ffmpeg is installed.\n' +
@@ -107,12 +102,13 @@ export type AsrOptions = {
 	model: ModelName;
 };
 
-export function runAsr(filePath: string, options: AsrOptions): void {
+export async function runAsr(
+	filePath: string,
+	options: AsrOptions,
+): Promise<void> {
 	const resolvedPath = path.resolve(filePath);
 	if (!fs.existsSync(resolvedPath)) {
-		console.error(`Error: file not found: ${resolvedPath}`);
-		// eslint-disable-next-line unicorn/no-process-exit
-		process.exit(1);
+		throw new Error(`File not found: ${resolvedPath}`);
 	}
 
 	const ext = path.extname(resolvedPath).toLowerCase();
@@ -122,7 +118,7 @@ export function runAsr(filePath: string, options: AsrOptions): void {
 	if (ext === '.wav') {
 		wavPath = resolvedPath;
 	} else {
-		wavPath = convertToWav(resolvedPath);
+		wavPath = await convertToWav(resolvedPath);
 		needsCleanup = true;
 	}
 

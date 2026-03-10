@@ -1,8 +1,8 @@
-import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import {execa} from 'execa';
 
 const modelsDirectory = path.join(os.homedir(), '.coli', 'models');
 
@@ -77,7 +77,7 @@ async function downloadModel(model: ModelName): Promise<void> {
 	process.stdout.write('\n');
 	console.log('  Extracting...');
 
-	execFileSync('tar', ['xjf', tarPath, '-C', modelsDirectory], {stdio: 'pipe'});
+	await execa('tar', ['xjf', tarPath, '-C', modelsDirectory]);
 	fs.unlinkSync(tarPath);
 
 	console.log(`  ${dirName} ready.\n`);

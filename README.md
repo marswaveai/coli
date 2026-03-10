@@ -100,10 +100,10 @@ import { ensureModels, runAsr } from "@litomore/coli";
 await ensureModels();
 
 // Plain text output
-runAsr("recording.m4a", { json: false, model: "sensevoice" });
+await runAsr("recording.m4a", { json: false, model: "sensevoice" });
 
 // JSON output
-runAsr("recording.m4a", { json: true, model: "whisper" });
+await runAsr("recording.m4a", { json: true, model: "whisper" });
 ```
 
 **Options**

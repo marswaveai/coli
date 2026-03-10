@@ -15,5 +15,5 @@ export async function asrCommand(cli: ReturnType<typeof meow>, args: string[]) {
 	}
 
 	await ensureModels();
-	runAsr(filePath, {json: (cli.flags as {json: boolean}).json, model});
+	await runAsr(filePath, {json: (cli.flags as {json: boolean}).json, model});
 }
