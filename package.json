@@ -1,0 +1,34 @@
+{
+  "name": "@litomore/coli",
+  "author": "LitoMore",
+  "version": "0.0.0",
+  "description": "A CLI for the Cola",
+  "type": "module",
+  "bin": "distribution/cli.js",
+  "exports": "./distribution/index.js",
+  "types": "distribution",
+  "files": [
+    "distribution"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "prepublishOnly": "node --run build",
+    "clean": "del-cli distribution",
+    "build": "node --run clean && tsc && chmod +x distribution/cli.js",
+    "pretest": "node --run build",
+    "test": "xo"
+  },
+  "dependencies": {
+    "ink": "^6.8.0",
+    "meow": "^14.1.0",
+    "react": "^19.2.4",
+    "sherpa-onnx-node": "^1.12.28"
+  },
+  "devDependencies": {
+    "@sindresorhus/tsconfig": "^8.1.0",
+    "@types/node": "^25.4.0",
+    "del-cli": "^7.0.0",
+    "typescript": "^5.9.3",
+    "xo": "^1.2.3"
+  }
+}
