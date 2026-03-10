@@ -1,7 +1,7 @@
 {
   "name": "@litomore/coli",
   "author": "LitoMore",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A CLI for the Cola",
   "type": "module",
   "bin": "distribution/cli.js",
