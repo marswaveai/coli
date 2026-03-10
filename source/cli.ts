@@ -1,8 +1,6 @@
 #!/usr/bin/env node
-import process from 'node:process';
 import meow from 'meow';
-import {runAsr} from './asr.js';
-import {ensureModels} from './models.js';
+import {asrCommand} from './asr/cli.js';
 
 const cli = meow(
 	`
@@ -37,26 +35,16 @@ const cli = meow(
 	},
 );
 
-const [command, ...args] = cli.input;
+const [command = 'EMPTY', ...args] = cli.input;
 
-if (command === 'asr') {
-	const filePath = args[0];
-	if (!filePath) {
-		console.error('Error: please provide an audio file path.\n');
+switch (command) {
+	case 'asr': {
+		await asrCommand(cli, args);
+		break;
+	}
+
+	default: {
 		cli.showHelp();
-		process.exit(1);
+		break;
 	}
-
-	const {model} = cli.flags;
-	if (model !== 'whisper' && model !== 'sensevoice') {
-		console.error(
-			`Error: unknown model "${model}". Use "whisper" or "sensevoice".`,
-		);
-		process.exit(1);
-	}
-
-	await ensureModels();
-	runAsr(filePath, {json: cli.flags.json, model});
-} else {
-	cli.showHelp();
 }

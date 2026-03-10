@@ -1,2 +1,2 @@
-export {runAsr, type AsrOptions} from './asr.js';
-export {ensureModels, getModelPath, modelDisplayNames} from './models.js';
+export {runAsr, type AsrOptions} from './asr/asr.js';
+export {ensureModels, getModelPath, modelDisplayNames} from './asr/models.js';
