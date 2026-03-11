@@ -1,35 +1,36 @@
 {
-  "name": "@litomore/coli",
-  "author": "LitoMore",
-  "version": "0.0.2",
-  "description": "A CLI for the Cola",
-  "type": "module",
-  "bin": "distribution/cli.js",
-  "exports": "./distribution/index.js",
-  "types": "distribution",
-  "files": [
-    "distribution",
-    "docs"
-  ],
-  "license": "MIT",
-  "scripts": {
-    "prepublishOnly": "node --run build",
-    "clean": "del-cli distribution",
-    "build": "node --run clean && tsc && chmod +x distribution/cli.js",
-    "pretest": "node --run build",
-    "test": "xo"
-  },
-  "dependencies": {
-    "commander": "^14.0.3",
-    "execa": "^9.6.1",
-    "mac-say": "^0.3.3",
-    "sherpa-onnx-node": "^1.12.28"
-  },
-  "devDependencies": {
-    "@sindresorhus/tsconfig": "^8.1.0",
-    "@types/node": "^25.4.0",
-    "del-cli": "^7.0.0",
-    "typescript": "^5.9.3",
-    "xo": "^1.2.3"
-  }
+	"name": "@marswave/coli",
+	"private": false,
+	"version": "0.0.2",
+	"description": "A CLI for the Cola",
+	"repository": "marswaveai/coli",
+	"type": "module",
+	"bin": "distribution/cli.js",
+	"exports": "./distribution/index.js",
+	"types": "distribution",
+	"files": [
+		"distribution",
+		"docs"
+	],
+	"license": "MIT",
+	"scripts": {
+		"prepublishOnly": "node --run build",
+		"clean": "del-cli distribution",
+		"build": "node --run clean && tsc && chmod +x distribution/cli.js",
+		"pretest": "node --run build",
+		"test": "xo"
+	},
+	"dependencies": {
+		"commander": "^14.0.3",
+		"execa": "^9.6.1",
+		"mac-say": "^0.3.3",
+		"sherpa-onnx-node": "^1.12.28"
+	},
+	"devDependencies": {
+		"@sindresorhus/tsconfig": "^8.1.0",
+		"@types/node": "^25.4.0",
+		"del-cli": "^7.0.0",
+		"typescript": "^5.9.3",
+		"xo": "^1.2.3"
+	}
 }
