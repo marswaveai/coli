@@ -56,7 +56,7 @@ coli asr --model whisper recording.wav
 Check for required models and download any that are missing. Call this before `runAsr`.
 
 ```js
-import {ensureModels} from '@litomore/coli';
+import {ensureModels} from '@marswave/coli';
 
 await ensureModels();
 ```
@@ -66,7 +66,7 @@ await ensureModels();
 Run speech recognition on an audio file. Results are printed to stdout.
 
 ```js
-import {ensureModels, runAsr} from '@litomore/coli';
+import {ensureModels, runAsr} from '@marswave/coli';
 
 await ensureModels();
 
@@ -89,7 +89,7 @@ await runAsr('recording.m4a', {json: true, model: 'whisper'});
 Returns the local filesystem path for a given model.
 
 ```js
-import {getModelPath} from '@litomore/coli';
+import {getModelPath} from '@marswave/coli';
 
 getModelPath('sensevoice');
 // => '/Users/you/.coli/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17'
@@ -103,7 +103,7 @@ getModelPath('whisper');
 A mapping from model key to its human-readable display name.
 
 ```js
-import {modelDisplayNames} from '@litomore/coli';
+import {modelDisplayNames} from '@marswave/coli';
 
 modelDisplayNames.sensevoice; // => 'sensevoice-small'
 modelDisplayNames.whisper; // => 'whisper-tiny.en'

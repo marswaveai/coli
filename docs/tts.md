@@ -32,7 +32,7 @@ coli tts -o output.aiff "Hello world"
 Speak text or save to an audio file.
 
 ```js
-import {runTts} from '@litomore/coli';
+import {runTts} from '@marswave/coli';
 
 // Speak text
 await runTts('Hello world');
@@ -57,7 +57,7 @@ await runTts('Hello world', {output: 'output.aiff'});
 Returns a list of available voice names on the system.
 
 ```js
-import {getVoices} from '@litomore/coli';
+import {getVoices} from '@marswave/coli';
 
 const voices = await getVoices();
 // => ['Alex', 'Alice', 'Samantha', ...]

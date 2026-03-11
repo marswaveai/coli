@@ -5,7 +5,7 @@ Core library for Cola. Provides essential capabilities commonly used by agents.
 ## CLI Usage
 
 ```sh
-npm install -g @litomore/coli
+npm install -g @marswave/coli
 ```
 
 ```
@@ -26,11 +26,11 @@ Examples
 ## API Usage
 
 ```sh
-npm install @litomore/coli
+npm install @marswave/coli
 ```
 
 ```js
-import {ensureModels, runAsr, runTts} from '@litomore/coli';
+import {ensureModels, runAsr, runTts} from '@marswave/coli';
 
 // ASR
 await ensureModels();
