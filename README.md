@@ -1,6 +1,6 @@
 # coli
 
-A local-first CLI for automatic speech recognition (ASR), powered by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx). All inference runs offline on your machine.
+Core library for Cola. Provides essential capabilities commonly used by agents.
 
 ## Prerequisites
 
@@ -29,81 +29,86 @@ Library:
 npm install @litomore/coli
 ```
 
-## Models
+## CLI
 
-On first run, coli automatically downloads two ASR models to `~/.coli/models/`:
+```
+Usage
+  $ coli <command> [options]
 
-| Name                   | Model                                                              | Languages                                     |
-| ---------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
-| `sensevoice` (default) | [SenseVoice Small](https://github.com/FunAudioLLM/SenseVoice) int8 | Chinese, English, Japanese, Korean, Cantonese |
-| `whisper`              | [Whisper tiny.en](https://github.com/openai/whisper) int8          | English                                       |
+Commands
+  asr    Transcribe an audio file using speech recognition
 
-## Usage
+Examples
+  $ coli asr recording.m4a
+  $ coli asr -j recording.m4a
+  $ coli asr --model whisper recording.wav
+```
 
-### Plain text output
+### `coli asr`
+
+Transcribe an audio file using speech recognition.
 
 ```sh
+# Plain text output
 coli asr recording.m4a
-```
 
-### JSON output
-
-```sh
+# JSON output
 coli asr -j recording.m4a
-```
 
-```json
-{
-  "text": "The tribal chieftain called for the boy.",
-  "model": "sensevoice-small",
-  "lang": "<|en|>",
-  "emotion": "<|NEUTRAL|>",
-  "event": "<|Speech|>",
-  "tokens": ["The", " tri", "bal", " chief", "tain", "..."],
-  "timestamps": [0.9, 1.26, 1.56, 1.8, 2.16, "..."],
-  "duration": 7.152
-}
-```
-
-### Select model
-
-```sh
+# Select model
 coli asr --model whisper recording.wav
 ```
 
-### Options
+**Options**
 
 ```
 -j, --json     Output result in JSON format
 --model        Model to use: whisper, sensevoice (default: sensevoice)
 ```
 
+**JSON output example**
+
+```json
+{
+	"text": "The tribal chieftain called for the boy.",
+	"model": "sensevoice-small",
+	"lang": "<|en|>",
+	"emotion": "<|NEUTRAL|>",
+	"event": "<|Speech|>",
+	"tokens": ["The", " tri", "bal", " chief", "tain", "..."],
+	"timestamps": [0.9, 1.26, 1.56, 1.8, 2.16, "..."],
+	"duration": 7.152
+}
+```
+
 ## API
 
-### `ensureModels()`
+### ASR
+
+#### `ensureModels()`
 
 Check for required models and download any that are missing. Call this before `runAsr`.
 
 ```js
-import { ensureModels } from "@litomore/coli";
+import {ensureModels} from '@litomore/coli';
 
 await ensureModels();
 ```
 
-### `runAsr(filePath, options)`
+#### `runAsr(filePath, options)`
 
 Run speech recognition on an audio file. Results are printed to stdout.
 
 ```js
-import { ensureModels, runAsr } from "@litomore/coli";
+import {ensureModels, runAsr} from '@litomore/coli';
 
 await ensureModels();
 
 // Plain text output
-await runAsr("recording.m4a", { json: false, model: "sensevoice" });
+await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
 
 // JSON output
-await runAsr("recording.m4a", { json: true, model: "whisper" });
+await runAsr('recording.m4a', {json: true, model: 'whisper'});
 ```
 
 **Options**
@@ -113,30 +118,39 @@ await runAsr("recording.m4a", { json: true, model: "whisper" });
 | `json`   | `boolean`                   | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text |
 | `model`  | `'whisper' \| 'sensevoice'` | Which model to use for recognition                                            |
 
-### `getModelPath(model)`
+#### `getModelPath(model)`
 
 Returns the local filesystem path for a given model.
 
 ```js
-import { getModelPath } from "@litomore/coli";
+import {getModelPath} from '@litomore/coli';
 
-getModelPath("sensevoice");
+getModelPath('sensevoice');
 // => '/Users/you/.coli/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17'
 
-getModelPath("whisper");
+getModelPath('whisper');
 // => '/Users/you/.coli/models/sherpa-onnx-whisper-tiny.en'
 ```
 
-### `modelDisplayNames`
+#### `modelDisplayNames`
 
 A mapping from model key to its human-readable display name.
 
 ```js
-import { modelDisplayNames } from "@litomore/coli";
+import {modelDisplayNames} from '@litomore/coli';
 
 modelDisplayNames.sensevoice; // => 'sensevoice-small'
 modelDisplayNames.whisper; // => 'whisper-tiny.en'
 ```
+
+## Models
+
+On first run, coli automatically downloads ASR models to `~/.coli/models/`:
+
+| Name                   | Model                                                              | Languages                                     |
+| ---------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| `sensevoice` (default) | [SenseVoice Small](https://github.com/FunAudioLLM/SenseVoice) int8 | Chinese, English, Japanese, Korean, Cantonese |
+| `whisper`              | [Whisper tiny.en](https://github.com/openai/whisper) int8          | English                                       |
 
 ## Supported audio formats
 
