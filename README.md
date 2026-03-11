@@ -14,11 +14,14 @@ Usage
 
 Commands
   asr    Transcribe an audio file using speech recognition
+  tts    Speak text using text-to-speech (macOS only)
 
 Examples
   $ coli asr recording.m4a
   $ coli asr -j recording.m4a
   $ coli asr --model whisper recording.wav
+  $ coli tts "Hello world"
+  $ coli tts -v Samantha -r 200 "Hello world"
 ```
 
 ### `coli asr`
@@ -56,6 +59,29 @@ coli asr --model whisper recording.wav
 	"timestamps": [0.9, 1.26, 1.56, 1.8, 2.16, "..."],
 	"duration": 7.152
 }
+```
+
+### `coli tts`
+
+Speak text using text-to-speech. Currently macOS only.
+
+```sh
+# Speak text
+coli tts "Hello world"
+
+# Use a specific voice and rate
+coli tts -v Samantha -r 200 "Hello world"
+
+# Save to audio file
+coli tts -o output.aiff "Hello world"
+```
+
+**Options**
+
+```
+-v, --voice <name>    Voice to use (run `say -v "?"` to list)
+-r, --rate <wpm>      Speech rate in words per minute
+-o, --output <file>   Save audio to file instead of speaking
 ```
 
 ## API
@@ -122,6 +148,44 @@ import {modelDisplayNames} from '@litomore/coli';
 
 modelDisplayNames.sensevoice; // => 'sensevoice-small'
 modelDisplayNames.whisper; // => 'whisper-tiny.en'
+```
+
+### TTS
+
+#### `runTts(text, options?)`
+
+Speak text or save to an audio file. macOS only.
+
+```js
+import {runTts} from '@litomore/coli';
+
+// Speak text
+await runTts('Hello world');
+
+// With options
+await runTts('Hello world', {voice: 'Samantha', rate: 200});
+
+// Save to file
+await runTts('Hello world', {output: 'output.aiff'});
+```
+
+**Options**
+
+| Property | Type     | Description                                  |
+| -------- | -------- | -------------------------------------------- |
+| `voice`  | `string` | Voice name to use                            |
+| `rate`   | `number` | Speech rate in words per minute              |
+| `output` | `string` | Save to file instead of speaking             |
+
+#### `getVoices()`
+
+Returns a list of available voice names on the system. macOS only.
+
+```js
+import {getVoices} from '@litomore/coli';
+
+const voices = await getVoices();
+// => ['Alex', 'Alice', 'Samantha', ...]
 ```
 
 ## Models
