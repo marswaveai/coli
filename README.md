@@ -13,14 +13,16 @@ Usage
   $ coli <command> [options]
 
 Commands
-  asr    Transcribe an audio file using speech recognition
-  tts    Speak text using text-to-speech (macOS only)
+  asr         Transcribe an audio file using speech recognition
+  tts         Speak text using text-to-speech (macOS only)
+  cloud-tts   Generate speech using ListenHub OpenAPI
 
 Examples
   $ coli asr recording.m4a
   $ coli asr -j recording.m4a
   $ coli tts "Hello world"
   $ coli tts -v Samantha -r 200 "Hello world"
+  $ coli cloud-tts --voice cozy-man-english "Hello world"
 ```
 
 ## API Usage
@@ -44,7 +46,8 @@ await runTts('Hello world', {voice: 'Samantha', rate: 200});
 
 - [ASR](docs/asr.md) — Automatic speech recognition
 - [TTS](docs/tts.md) — Text-to-speech synthesis (macOS only)
-- [ListenHub OpenAPI](docs/listenhub-openapi.md) — Cloud TTS via ListenHub OpenAPI
+- [Cloud TTS](docs/cloud-tts.md) — Cloud-based TTS via ListenHub OpenAPI
+- [ListenHub OpenAPI](docs/listenhub-openapi.md) — ListenHub OpenAPI client
 
 ## License
 
