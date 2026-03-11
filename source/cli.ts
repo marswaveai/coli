@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import meow from 'meow';
-import {asrCommand} from './asr/cli.js';
+import {command as asrCommand} from './asr/_cli.js';
 
 const cli = meow(
 	`

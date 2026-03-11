@@ -2,7 +2,7 @@ import type meow from 'meow';
 import {runAsr} from './asr.js';
 import {ensureModels} from './models.js';
 
-export async function asrCommand(cli: ReturnType<typeof meow>, args: string[]) {
+export async function command(cli: ReturnType<typeof meow>, args: string[]) {
 	const filePath = args[0];
 	if (!filePath) {
 		cli.showHelp();
