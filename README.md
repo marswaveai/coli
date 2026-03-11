@@ -2,34 +2,11 @@
 
 Core library for Cola. Provides essential capabilities commonly used by agents.
 
-## Prerequisites
-
-- Node.js >= 20
-- [ffmpeg](https://ffmpeg.org/) (for non-WAV audio formats like `.m4a`, `.mp3`, etc.)
-
-```sh
-# macOS
-brew install ffmpeg
-
-# Debian / Ubuntu
-sudo apt install ffmpeg
-```
-
-## Install
-
-CLI:
-
-```sh
-npm install -g @litomore/coli
-```
-
-Library:
-
-```sh
-npm install @litomore/coli
-```
-
 ## CLI
+
+```shell
+npm i -g @litomore/coli
+```
 
 ```
 Usage
@@ -82,6 +59,10 @@ coli asr --model whisper recording.wav
 ```
 
 ## API
+
+```shell
+npm i @litomore/coli
+```
 
 ### ASR
 
