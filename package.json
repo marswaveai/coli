@@ -23,6 +23,7 @@
 	"dependencies": {
 		"commander": "^14.0.3",
 		"execa": "^9.6.1",
+		"ky": "^1.14.3",
 		"mac-say": "^0.3.3",
 		"sherpa-onnx-node": "^1.12.28"
 	},

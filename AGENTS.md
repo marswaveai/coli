@@ -7,6 +7,7 @@
 - **Distribution** - Pure ESM
 - **Package Manager** - npm only
 - **Compiler** - tsc only
+- **Fetch Utility** - ky only
 - **Child Process Utility** - execa only
 - **Linter** - XO for TypeScript files; Prettier for markdown, JSON, and yaml files
 

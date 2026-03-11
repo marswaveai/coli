@@ -1,22 +1,49 @@
 import type {Command} from 'commander';
-import {runTts} from './tts.js';
+import {getVoices, runTts} from './tts.js';
 
 export function register(program: Command) {
 	program
 		.command('tts')
 		.description('Speak text using text-to-speech (macOS only)')
-		.argument('<text>', 'Text to speak')
+		.argument('[text]', 'Text to speak')
 		.option(
 			'-v, --voice <name>',
-			'Voice to use, defaults to macOS system voice (run `say -v "?"` to list)',
+			'Voice to use, defaults to macOS system voice',
 		)
 		.option('-r, --rate <wpm>', 'Speech rate in words per minute', Number)
 		.option('-o, --output <file>', 'Save audio to file instead of speaking')
+		.option('--list-voices', 'List available voices')
+		.option('-j, --json', 'Output in JSON format (use with --list-voices)')
 		.action(
 			async (
-				text: string,
-				options: {voice?: string; rate?: number; output?: string},
+				text: string | undefined,
+				options: {
+					voice?: string;
+					rate?: number;
+					output?: string;
+					listVoices?: boolean;
+					json?: boolean;
+				},
 			) => {
+				if (options.listVoices) {
+					const voices = await getVoices();
+					if (options.json) {
+						console.log(JSON.stringify(voices, null, 2));
+					} else {
+						for (const voice of voices) {
+							console.log(
+								`${voice.name}\t${voice.languageCode}\t${voice.example}`,
+							);
+						}
+					}
+
+					return;
+				}
+
+				if (!text) {
+					throw new Error('Please provide text to speak.');
+				}
+
 				await runTts(text, options);
 			},
 		);

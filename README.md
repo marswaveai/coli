@@ -44,6 +44,7 @@ await runTts('Hello world', {voice: 'Samantha', rate: 200});
 
 - [ASR](docs/asr.md) — Automatic speech recognition
 - [TTS](docs/tts.md) — Text-to-speech synthesis (macOS only)
+- [ListenHub OpenAPI](docs/listenhub-openapi.md) — Cloud TTS via ListenHub OpenAPI
 
 ## License
 
