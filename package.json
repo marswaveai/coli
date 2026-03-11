@@ -19,8 +19,8 @@
     "test": "xo"
   },
   "dependencies": {
+    "commander": "^14.0.3",
     "execa": "^9.6.1",
-    "meow": "^14.1.0",
     "sherpa-onnx-node": "^1.12.28"
   },
   "devDependencies": {

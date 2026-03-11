@@ -1,19 +1,23 @@
-import type meow from 'meow';
+import type {Command} from 'commander';
 import {runAsr} from './asr.js';
 import {ensureModels} from './models.js';
 
-export async function command(cli: ReturnType<typeof meow>, args: string[]) {
-	const filePath = args[0];
-	if (!filePath) {
-		cli.showHelp();
-		throw new Error('Please provide an audio file path.');
-	}
+export function register(program: Command) {
+	program
+		.command('asr')
+		.description('Transcribe an audio file using speech recognition')
+		.argument('<file>', 'Audio file to transcribe')
+		.option('-j, --json', 'Output result in JSON format', false)
+		.option('--model <name>', 'Model to use: whisper, sensevoice', 'sensevoice')
+		.action(async (file: string, options: {json: boolean; model: string}) => {
+			const {model} = options;
+			if (model !== 'whisper' && model !== 'sensevoice') {
+				throw new Error(
+					`Unknown model "${model}". Use "whisper" or "sensevoice".`,
+				);
+			}
 
-	const {model} = cli.flags as {model: string};
-	if (model !== 'whisper' && model !== 'sensevoice') {
-		throw new Error(`Unknown model "${model}". Use "whisper" or "sensevoice".`);
-	}
-
-	await ensureModels();
-	await runAsr(filePath, {json: (cli.flags as {json: boolean}).json, model});
+			await ensureModels();
+			await runAsr(file, {json: options.json, model});
+		});
 }
