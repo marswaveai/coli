@@ -8,7 +8,8 @@
   "exports": "./distribution/index.js",
   "types": "distribution",
   "files": [
-    "distribution"
+    "distribution",
+    "docs"
   ],
   "license": "MIT",
   "scripts": {
