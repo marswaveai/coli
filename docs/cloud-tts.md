@@ -1,6 +1,6 @@
 # Cloud TTS
 
-Generate speech using [ListenHub OpenAPI](https://staging.listenhub.ai/docs/en/openapi/api-reference). Audio is streamed as MP3 from the cloud.
+Generate speech using [ListenHub OpenAPI](https://listenhub.ai/docs/en/openapi). Audio is streamed as MP3 from the cloud.
 
 ## Prerequisites
 
@@ -85,4 +85,4 @@ await runCloudTts('Hello world', {
 | `apiKey` | `string` | ListenHub API key                              |
 | `voice`  | `string` | Speaker ID (from `listSpeakers`)               |
 | `model`  | `string` | Model to use (optional, defaults to `flowtts`) |
-| `output` | `string` | Save to file instead of playing directly        |
+| `output` | `string` | Save to file instead of playing directly       |

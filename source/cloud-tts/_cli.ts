@@ -7,7 +7,7 @@ function getApiKey(options: {apiKey?: string}): string {
 	const key = options.apiKey ?? process.env['LISTENHUB_API_KEY'];
 	if (!key) {
 		throw new Error(
-			'API key required. Use --api-key or set LISTENHUB_API_KEY environment variable.',
+			'API key required. Use --api-key or set LISTENHUB_API_KEY environment variable. Get an API key from https://listenhub.ai/settings/api-keys',
 		);
 	}
 
@@ -19,7 +19,10 @@ export function register(program: Command) {
 		.command('cloud-tts')
 		.description('Generate speech using ListenHub OpenAPI')
 		.argument('[text]', 'Text to synthesize')
-		.option('--api-key <key>', 'ListenHub API key (or set LISTENHUB_API_KEY)')
+		.option(
+			'--api-key <key>',
+			'ListenHub API key (or set LISTENHUB_API_KEY environment variable)',
+		)
 		.option('--voice <id>', 'Speaker ID to use')
 		.option('--model <name>', 'Model to use (default: flowtts)')
 		.option('-o, --output <file>', 'Save audio to file')

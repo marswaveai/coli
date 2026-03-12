@@ -1,6 +1,6 @@
 # ListenHub OpenAPI
 
-Client for the [ListenHub OpenAPI](https://staging.listenhub.ai/docs/en/openapi/api-reference), providing cloud-based TTS with streaming audio output.
+Client for the [ListenHub OpenAPI](https://listenhub.ai/docs/en/openapi), providing cloud-based TTS with streaming audio output.
 
 ## Setup
 

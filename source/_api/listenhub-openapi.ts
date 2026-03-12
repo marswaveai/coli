@@ -25,7 +25,7 @@ export class ListenHubApi {
 	 * @param options - The options for the speakers request.
 	 * @param options.language - Optional. The language of the speakers to get, defaults to list all languages.
 	 * @returns A list of available speakers.
-	 * @see {@link https://staging.listenhub.ai/docs/en/openapi/api-reference/speakers#list-available-speakers|List Available Speakers}
+	 * @see {@link https://listenhub.ai/docs/en/openapi/api-reference/speakers#list-available-speakers|List Available Speakers}
 	 */
 	async getAvailableSpeakers(options?: {language?: SpeakerLanguage}) {
 		return this.api.get('v1/speakers/list', {searchParams: options}).json<
@@ -48,7 +48,7 @@ export class ListenHubApi {
 	 * @param options.voice - The `speakerId` to use for the TTS.
 	 * @param options.model - Optional. The model to use for the TTS, defaults to `flowtts`.
 	 * @returns A readable stream of the MP3 audio.
-	 * @see {@link https://staging.listenhub.ai/docs/en/openapi/api-reference/flowspeech#streaming-tts|Streaming TTS}
+	 * @see {@link https://listenhub.ai/docs/en/openapi/api-reference/flowspeech|Streaming TTS}
 	 */
 	async tts(options: {input: string; voice: string; model?: string}) {
 		const response = await this.api.post('v1/tts', {json: options});
