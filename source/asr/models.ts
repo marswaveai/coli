@@ -83,23 +83,13 @@ async function downloadModel(entry: ModelEntry): Promise<void> {
 	console.log(`  ${dirName} ready.\n`);
 }
 
-export async function ensureModels(): Promise<void> {
-	const pending: ModelEntry[] = [];
-	for (const name of ['whisper', 'sensevoice'] as const) {
-		const entry = models[name];
-		if (!isModelInstalled(entry)) {
-			pending.push(entry);
-		}
-	}
-
-	if (pending.length === 0) {
+export async function ensureModel(
+	model: ModelName = 'sensevoice',
+): Promise<void> {
+	const entry = models[model];
+	if (isModelInstalled(entry)) {
 		return;
 	}
 
-	console.log('First run: downloading ASR models...\n');
-	for (const entry of pending) {
-		await downloadModel(entry); // eslint-disable-line no-await-in-loop
-	}
-
-	console.log('All models ready.\n');
+	await downloadModel(entry);
 }

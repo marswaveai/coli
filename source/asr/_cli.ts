@@ -1,6 +1,6 @@
 import type {Command} from 'commander';
 import {runAsr} from './asr.js';
-import {ensureModels} from './models.js';
+import {ensureModel} from './models.js';
 
 export function register(program: Command) {
 	program
@@ -17,7 +17,7 @@ export function register(program: Command) {
 				);
 			}
 
-			await ensureModels();
+			await ensureModel(model);
 			await runAsr(file, {json: options.json, model});
 		});
 }
