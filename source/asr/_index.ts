@@ -1,4 +1,4 @@
-export {ensureModel, getModelPath, modelDisplayNames} from './models.js';
+export {ensureModels, getModelPath, modelDisplayNames} from './models.js';
 export {
 	streamAsr,
 	type AsrStreamResult,

@@ -83,13 +83,14 @@ async function downloadModel(entry: ModelEntry): Promise<void> {
 	console.log(`  ${dirName} ready.\n`);
 }
 
-export async function ensureModel(
-	model: ModelName = 'sensevoice',
+export async function ensureModels(
+	modelNames: ModelName[] = ['sensevoice'],
 ): Promise<void> {
-	const entry = models[model];
-	if (isModelInstalled(entry)) {
-		return;
-	}
+	const pending = modelNames
+		.map((name) => models[name])
+		.filter((entry) => !isModelInstalled(entry));
 
-	await downloadModel(entry);
+	for (const entry of pending) {
+		await downloadModel(entry); // eslint-disable-line no-await-in-loop
+	}
 }

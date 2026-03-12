@@ -51,14 +51,15 @@ coli asr --model whisper recording.wav
 
 ## API
 
-### `ensureModel(model)`
+### `ensureModels(models?)`
 
-Download the specified model if not already present. Call this before `runAsr` or `streamAsr`.
+Download the specified models if not already present. Defaults to `['sensevoice']`. Call this before `runAsr` or `streamAsr`.
 
 ```js
-import {ensureModel} from '@marswave/coli';
+import {ensureModels} from '@marswave/coli';
 
-await ensureModel(); // defaults to 'sensevoice'
+await ensureModels(); // downloads sensevoice only
+await ensureModels(['whisper', 'sensevoice']); // downloads both
 ```
 
 ### `runAsr(filePath, options)`
@@ -66,9 +67,9 @@ await ensureModel(); // defaults to 'sensevoice'
 Run speech recognition on an audio file. Results are printed to stdout.
 
 ```js
-import {ensureModel, runAsr} from '@marswave/coli';
+import {ensureModels, runAsr} from '@marswave/coli';
 
-await ensureModel();
+await ensureModels();
 
 // Plain text output
 await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
@@ -115,12 +116,12 @@ For streaming speech recognition, use the streaming API. It accepts audio as an 
 
 ### `streamAsr(audio, options)`
 
-Stream audio in and receive recognition results incrementally. Call `ensureModel()` first.
+Stream audio in and receive recognition results incrementally. Call `ensureModels()` first.
 
 ```js
-import {ensureModel, streamAsr} from '@marswave/coli';
+import {ensureModels, streamAsr} from '@marswave/coli';
 
-await ensureModel();
+await ensureModels();
 
 const audioSource = createAudioStream(); // AsyncIterable<Float32Array> of 16 kHz mono PCM
 
