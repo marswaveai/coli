@@ -8,10 +8,9 @@ const modelsDirectory = path.join(os.homedir(), '.coli', 'models');
 
 type ModelName = 'whisper' | 'sensevoice';
 
-const models: Record<
-	ModelName,
-	{dirName: string; url: string; checkFile: string}
-> = {
+type ModelEntry = {dirName: string; url: string; checkFile: string};
+
+const models: Record<ModelName, ModelEntry> = {
 	whisper: {
 		dirName: 'sherpa-onnx-whisper-tiny.en',
 		url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2',
@@ -33,12 +32,13 @@ export function getModelPath(model: ModelName): string {
 	return path.join(modelsDirectory, models[model].dirName);
 }
 
-function isModelInstalled(model: ModelName): boolean {
-	return fs.existsSync(path.join(getModelPath(model), models[model].checkFile));
+function isModelInstalled(entry: ModelEntry): boolean {
+	const modelDir = path.join(modelsDirectory, entry.dirName);
+	return fs.existsSync(path.join(modelDir, entry.checkFile));
 }
 
-async function downloadModel(model: ModelName): Promise<void> {
-	const {dirName, url} = models[model];
+async function downloadModel(entry: ModelEntry): Promise<void> {
+	const {dirName, url} = entry;
 
 	console.log(`Downloading ${dirName}...`);
 	fs.mkdirSync(modelsDirectory, {recursive: true});
@@ -84,10 +84,11 @@ async function downloadModel(model: ModelName): Promise<void> {
 }
 
 export async function ensureModels(): Promise<void> {
-	const pending: ModelName[] = [];
+	const pending: ModelEntry[] = [];
 	for (const name of ['whisper', 'sensevoice'] as const) {
-		if (!isModelInstalled(name)) {
-			pending.push(name);
+		const entry = models[name];
+		if (!isModelInstalled(entry)) {
+			pending.push(entry);
 		}
 	}
 
@@ -96,8 +97,8 @@ export async function ensureModels(): Promise<void> {
 	}
 
 	console.log('First run: downloading ASR models...\n');
-	for (const model of pending) {
-		await downloadModel(model); // eslint-disable-line no-await-in-loop
+	for (const entry of pending) {
+		await downloadModel(entry); // eslint-disable-line no-await-in-loop
 	}
 
 	console.log('All models ready.\n');

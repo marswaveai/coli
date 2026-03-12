@@ -109,6 +109,47 @@ modelDisplayNames.sensevoice; // => 'sensevoice-small'
 modelDisplayNames.whisper; // => 'whisper-tiny.en'
 ```
 
+## Streaming API
+
+For streaming speech recognition, use the streaming API. It accepts audio as an async iterable of `Float32Array` chunks (16 kHz mono PCM) and delivers recognition results via the `onResult` callback as audio accumulates, using the SenseVoice model.
+
+### `streamAsr(audio, options)`
+
+Stream audio in and receive recognition results incrementally. Call `ensureModels()` first.
+
+```js
+import {ensureModels, streamAsr} from '@marswave/coli';
+
+await ensureModels();
+
+const audioSource = createAudioStream(); // AsyncIterable<Float32Array> of 16 kHz mono PCM
+
+await streamAsr(audioSource, {
+	onResult(result) {
+		console.log(result.text, result.isFinal ? '(final)' : '(partial)');
+	},
+});
+```
+
+**Options**
+
+| Property     | Type                                | Description                                   |
+| ------------ | ----------------------------------- | --------------------------------------------- |
+| `onResult`   | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result |
+| `sampleRate` | `number`                            | Audio sample rate in Hz (default: `16000`)    |
+
+**Result**
+
+| Property     | Type       | Description                     |
+| ------------ | ---------- | ------------------------------- |
+| `text`       | `string`   | Recognized text so far          |
+| `lang`       | `string`   | Detected language tag           |
+| `emotion`    | `string`   | Detected emotion tag            |
+| `event`      | `string`   | Detected audio event tag        |
+| `tokens`     | `string[]` | Individual tokens               |
+| `timestamps` | `number[]` | Timestamp for each token        |
+| `isFinal`    | `boolean`  | Whether the result is finalized |
+
 ## Models
 
 On first run, coli automatically downloads ASR models to `~/.coli/models/`:
@@ -117,6 +158,8 @@ On first run, coli automatically downloads ASR models to `~/.coli/models/`:
 | ---------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
 | `sensevoice` (default) | [SenseVoice Small](https://github.com/FunAudioLLM/SenseVoice) int8 | Chinese, English, Japanese, Korean, Cantonese |
 | `whisper`              | [Whisper tiny.en](https://github.com/openai/whisper) int8          | English                                       |
+
+`streamAsr` uses the SenseVoice model.
 
 ## Supported audio formats
 

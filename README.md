@@ -32,11 +32,18 @@ npm install @marswave/coli
 ```
 
 ```js
-import {ensureModels, runAsr, runTts} from '@marswave/coli';
+import {ensureModels, runAsr, streamAsr, runTts} from '@marswave/coli';
 
 // ASR
 await ensureModels();
 await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
+
+// Streaming ASR (see docs/asr.md for details)
+await streamAsr(audioSource, {
+	onResult(result) {
+		console.log(result.text, result.isFinal ? '(final)' : '(partial)');
+	},
+});
 
 // TTS (macOS only)
 await runTts('Hello world', {voice: 'Samantha', rate: 200});
