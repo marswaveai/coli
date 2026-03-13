@@ -112,6 +112,7 @@ export type VadOptions = {
 	minSpeechDuration?: number;
 	minSilenceDuration?: number;
 	maxSpeechDuration?: number;
+	enableExternalBuffer?: boolean;
 };
 
 export type StreamAsrOptions = {
@@ -165,7 +166,7 @@ async function streamWithVad(
 
 	function drainSegments() {
 		while (!vad.isEmpty()) {
-			const segment = vad.front();
+			const segment = vad.front(vadOptions.enableExternalBuffer);
 			vad.pop();
 			emitResult(
 				recognize(recognizer, segment.samples),
