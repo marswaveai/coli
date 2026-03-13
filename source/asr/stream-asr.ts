@@ -30,7 +30,7 @@ function sherpaOnnx(): SherpaOnnx {
 }
 
 const defaultSampleRate = 16_000;
-const chunkInterval = defaultSampleRate * 2;
+const defaultAsrIntervalMs = 1000;
 
 function createRecognizer(): OfflineRecognizer {
 	const modelDir = getModelPath('sensevoice');
@@ -88,6 +88,7 @@ export type AsrStreamResult = {
 
 export type StreamAsrOptions = {
 	sampleRate?: number;
+	asrIntervalMs?: number;
 	onResult: (result: AsrStreamResult) => void;
 };
 
@@ -96,6 +97,8 @@ export async function streamAsr(
 	options: StreamAsrOptions,
 ): Promise<void> {
 	const inputSampleRate = options.sampleRate ?? defaultSampleRate;
+	const intervalMs = options.asrIntervalMs ?? defaultAsrIntervalMs;
+	const chunkInterval = (defaultSampleRate * intervalMs) / 1000;
 	const recognizer = createRecognizer();
 
 	const buffers: Float32Array[] = [];

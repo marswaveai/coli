@@ -134,10 +134,11 @@ await streamAsr(audioSource, {
 
 **Options**
 
-| Property     | Type                                | Description                                   |
-| ------------ | ----------------------------------- | --------------------------------------------- |
-| `onResult`   | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result |
-| `sampleRate` | `number`                            | Audio sample rate in Hz (default: `16000`)    |
+| Property        | Type                                | Description                                            |
+| --------------- | ----------------------------------- | ------------------------------------------------------ |
+| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result          |
+| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)             |
+| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`) |
 
 **Result**
 
