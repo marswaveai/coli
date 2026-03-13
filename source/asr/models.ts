@@ -94,3 +94,54 @@ export async function ensureModels(
 		await downloadModel(entry); // eslint-disable-line no-await-in-loop
 	}
 }
+
+const vadModelFile = 'silero_vad.onnx';
+const vadModelUrl =
+	'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx';
+
+export function getVadModelPath(): string {
+	return path.join(modelsDirectory, vadModelFile);
+}
+
+export async function ensureVadModel(): Promise<void> {
+	const modelPath = getVadModelPath();
+	if (fs.existsSync(modelPath)) {
+		return;
+	}
+
+	console.log(`Downloading ${vadModelFile}...`);
+	fs.mkdirSync(modelsDirectory, {recursive: true});
+
+	const response = await fetch(vadModelUrl, {redirect: 'follow'});
+	if (!response.ok || !response.body) {
+		throw new Error(`Failed to download VAD model: ${response.statusText}`);
+	}
+
+	const contentLength = Number(response.headers.get('content-length') ?? 0);
+	const reader = response.body.getReader();
+	const fileHandle = fs.openSync(modelPath, 'w');
+
+	let downloaded = 0;
+	try {
+		for (;;) {
+			const {done, value} = await reader.read(); // eslint-disable-line no-await-in-loop
+			if (done) {
+				break;
+			}
+
+			fs.writeSync(fileHandle, value);
+			downloaded += value.length;
+			if (contentLength > 0) {
+				const percent = ((downloaded / contentLength) * 100).toFixed(1);
+				const kb = (downloaded / 1024).toFixed(0);
+				const totalKb = (contentLength / 1024).toFixed(0);
+				process.stdout.write(`\r  ${kb} KB / ${totalKb} KB (${percent}%)`);
+			}
+		}
+	} finally {
+		fs.closeSync(fileHandle);
+	}
+
+	process.stdout.write('\n');
+	console.log(`  ${vadModelFile} ready.\n`);
+}

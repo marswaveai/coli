@@ -116,29 +116,57 @@ For streaming speech recognition, use the streaming API. It accepts audio as an 
 
 ### `streamAsr(audio, options)`
 
-Stream audio in and receive recognition results incrementally. Call `ensureModels()` first.
+Stream audio in and receive recognition results incrementally. Call `ensureModels()` first. If using VAD, also call `ensureVadModel()`.
 
 ```js
-import {ensureModels, streamAsr} from '@marswave/coli';
+import {ensureModels, ensureVadModel, streamAsr} from '@marswave/coli';
 
 await ensureModels();
 
 const audioSource = createAudioStream(); // AsyncIterable<Float32Array> of 16 kHz mono PCM
 
+// Interval-based (default) — emits partial results at a fixed interval
 await streamAsr(audioSource, {
 	onResult(result) {
 		console.log(result.text, result.isFinal ? '(final)' : '(partial)');
+	},
+});
+
+// VAD-based — segments speech automatically, each segment emits a final result
+await ensureVadModel();
+await streamAsr(audioSource, {
+	vad: true,
+	onResult(result) {
+		console.log(result.text);
+	},
+});
+
+// VAD with custom parameters
+await streamAsr(audioSource, {
+	vad: {threshold: 0.4, minSilenceDuration: 0.3, maxSpeechDuration: 10},
+	onResult(result) {
+		console.log(result.text);
 	},
 });
 ```
 
 **Options**
 
-| Property        | Type                                | Description                                            |
-| --------------- | ----------------------------------- | ------------------------------------------------------ |
-| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result          |
-| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)             |
-| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`) |
+| Property        | Type                                | Description                                                                  |
+| --------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
+| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result                                |
+| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)                                   |
+| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD |
+| `vad`           | `boolean \| VadOptions`             | Enable VAD. Pass `true` for defaults or a `VadOptions` object                |
+
+**VadOptions**
+
+| Property             | Type     | Description                                         |
+| -------------------- | -------- | --------------------------------------------------- |
+| `threshold`          | `number` | Speech detection threshold (default: `0.5`)         |
+| `minSpeechDuration`  | `number` | Minimum speech duration in seconds (default: `0.25`) |
+| `minSilenceDuration` | `number` | Minimum silence to end a segment in seconds (default: `0.5`) |
+| `maxSpeechDuration`  | `number` | Maximum speech segment duration in seconds (default: `15`)   |
 
 **Result**
 
@@ -154,14 +182,22 @@ await streamAsr(audioSource, {
 
 ## Models
 
-On first run, coli automatically downloads ASR models to `~/.coli/models/`:
+On first run, coli automatically downloads required models to `~/.coli/models/`:
+
+**ASR Models**
 
 | Name                   | Model                                                              | Languages                                     |
 | ---------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
 | `sensevoice` (default) | [SenseVoice Small](https://github.com/FunAudioLLM/SenseVoice) int8 | Chinese, English, Japanese, Korean, Cantonese |
 | `whisper`              | [Whisper tiny.en](https://github.com/openai/whisper) int8          | English                                       |
 
-`streamAsr` uses the SenseVoice model.
+**VAD Model**
+
+| Name         | Model                                                               | Size   |
+| ------------ | ------------------------------------------------------------------- | ------ |
+| `silero_vad` | [Silero VAD](https://github.com/snakers4/silero-vad) (k2-fsa export) | ~629 KB |
+
+`streamAsr` uses the SenseVoice model for recognition. VAD uses Silero VAD and is downloaded separately via `ensureVadModel()`.
 
 ## Supported audio formats
 

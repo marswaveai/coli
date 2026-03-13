@@ -1,26 +1,47 @@
 import {createRequire} from 'node:module';
 import path from 'node:path';
-import {getModelPath} from './models.js';
+import {getModelPath, getVadModelPath} from './models.js';
 
 const require = createRequire(import.meta.url);
+
+type RecognitionResult = {
+	text: string;
+	lang: string;
+	emotion: string;
+	event: string;
+	timestamps: number[];
+	tokens: string[];
+};
 
 type OfflineRecognizer = {
 	createStream(): {
 		acceptWaveform(wave: {sampleRate: number; samples: Float32Array}): void;
 	};
 	decode(stream: unknown): void;
-	getResult(stream: unknown): {
-		text: string;
-		lang: string;
-		emotion: string;
-		event: string;
-		timestamps: number[];
-		tokens: string[];
-	};
+	getResult(stream: unknown): RecognitionResult;
+};
+
+type SpeechSegment = {
+	start: number;
+	samples: Float32Array;
+};
+
+type VadInstance = {
+	config: {sileroVad: {windowSize: number}; sampleRate: number};
+	acceptWaveform(samples: Float32Array): void;
+	isEmpty(): boolean;
+	isDetected(): boolean;
+	front(enableExternalBuffer?: boolean): SpeechSegment;
+	pop(): void;
+	flush(): void;
 };
 
 type SherpaOnnx = {
 	OfflineRecognizer: new (config: Record<string, unknown>) => OfflineRecognizer;
+	Vad: new (
+		config: Record<string, unknown>,
+		bufferSizeInSeconds: number,
+	) => VadInstance;
 };
 
 let _sherpaOnnx: SherpaOnnx | undefined;
@@ -86,13 +107,98 @@ export type AsrStreamResult = {
 	isFinal: boolean;
 };
 
+export type VadOptions = {
+	threshold?: number;
+	minSpeechDuration?: number;
+	minSilenceDuration?: number;
+	maxSpeechDuration?: number;
+};
+
 export type StreamAsrOptions = {
 	sampleRate?: number;
 	asrIntervalMs?: number;
+	vad?: boolean | VadOptions;
 	onResult: (result: AsrStreamResult) => void;
 };
 
-export async function streamAsr(
+function createVad(vadOptions: VadOptions): VadInstance {
+	const onnx = sherpaOnnx();
+	return new onnx.Vad(
+		{
+			sileroVad: {
+				model: getVadModelPath(),
+				threshold: vadOptions.threshold ?? 0.5,
+				minSpeechDuration: vadOptions.minSpeechDuration ?? 0.25,
+				minSilenceDuration: vadOptions.minSilenceDuration ?? 0.5,
+				maxSpeechDuration: vadOptions.maxSpeechDuration ?? 15,
+				windowSize: 512,
+			},
+			sampleRate: defaultSampleRate,
+			debug: 0,
+			numThreads: 1,
+		},
+		60,
+	);
+}
+
+function emitResult(
+	result: RecognitionResult,
+	isFinal: boolean,
+	onResult: StreamAsrOptions['onResult'],
+) {
+	const text = result.text.trim();
+	if (text) {
+		onResult({...result, text, isFinal});
+	}
+}
+
+async function streamWithVad(
+	audio: AsyncIterable<Float32Array>,
+	options: StreamAsrOptions,
+	vadOptions: VadOptions,
+): Promise<void> {
+	const recognizer = createRecognizer();
+	const vad = createVad(vadOptions);
+	const {windowSize} = vad.config.sileroVad;
+
+	let pending = new Float32Array(0);
+
+	function drainSegments() {
+		while (!vad.isEmpty()) {
+			const segment = vad.front();
+			vad.pop();
+			emitResult(
+				recognize(recognizer, segment.samples),
+				true,
+				options.onResult,
+			);
+		}
+	}
+
+	for await (const chunk of audio) {
+		const combined = new Float32Array(pending.length + chunk.length);
+		combined.set(pending);
+		combined.set(chunk, pending.length);
+		pending = combined;
+
+		while (pending.length >= windowSize) {
+			vad.acceptWaveform(pending.subarray(0, windowSize));
+			pending = pending.subarray(windowSize);
+			drainSegments();
+		}
+	}
+
+	if (pending.length > 0) {
+		const padded = new Float32Array(windowSize);
+		padded.set(pending);
+		vad.acceptWaveform(padded);
+	}
+
+	vad.flush();
+	drainSegments();
+}
+
+async function streamWithInterval(
 	audio: AsyncIterable<Float32Array>,
 	options: StreamAsrOptions,
 ): Promise<void> {
@@ -126,10 +232,18 @@ export async function streamAsr(
 
 	const merged = mergeBuffers(buffers, totalSamples);
 	if (merged.length > 0) {
-		const result = recognize(recognizer, merged);
-		const text = result.text.trim();
-		if (text) {
-			options.onResult({...result, text, isFinal: true});
-		}
+		emitResult(recognize(recognizer, merged), true, options.onResult);
 	}
+}
+
+export async function streamAsr(
+	audio: AsyncIterable<Float32Array>,
+	options: StreamAsrOptions,
+): Promise<void> {
+	if (options.vad) {
+		const vadOptions = typeof options.vad === 'object' ? options.vad : {};
+		return streamWithVad(audio, options, vadOptions);
+	}
+
+	return streamWithInterval(audio, options);
 }
