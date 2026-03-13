@@ -166,7 +166,8 @@ await streamAsr(audioSource, {
 | `threshold`          | `number` | Speech detection threshold (default: `0.5`)         |
 | `minSpeechDuration`  | `number` | Minimum speech duration in seconds (default: `0.25`) |
 | `minSilenceDuration` | `number` | Minimum silence to end a segment in seconds (default: `0.5`) |
-| `maxSpeechDuration`  | `number` | Maximum speech segment duration in seconds (default: `15`)   |
+| `maxSpeechDuration`  | `number`  | Maximum speech segment duration in seconds (default: `15`)            |
+| `enableExternalBuffer` | `boolean` | Use external buffer for VAD speech segments (default: `undefined`) |
 
 **Result**
 
