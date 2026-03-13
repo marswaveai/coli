@@ -4,7 +4,7 @@ Generate speech using [ListenHub OpenAPI](https://listenhub.ai/docs/en/openapi).
 
 ## Prerequisites
 
-- A ListenHub API key. Pass it via `--api-key` or set the `LISTENHUB_API_KEY` environment variable.
+- A ListenHub API key. Pass it via `--api-key` or set the `COLI_LISTENHUB_API_KEY` environment variable.
 
 ## CLI
 
@@ -28,7 +28,7 @@ coli cloud-tts --voice cozy-man-english --model flowtts "Hello world"
 **Options**
 
 ```
---api-key <key>       ListenHub API key (or set LISTENHUB_API_KEY)
+--api-key <key>       ListenHub API key (or set COLI_LISTENHUB_API_KEY)
 --voice <id>          Speaker ID to use
 --model <name>        Model to use (default: flowtts)
 -o, --output <file>   Save audio to file

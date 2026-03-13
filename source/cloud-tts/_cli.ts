@@ -4,10 +4,10 @@ import type {SpeakerLanguage} from '../_api/types.js';
 import {listSpeakers, runCloudTts} from './cloud-tts.js';
 
 function getApiKey(options: {apiKey?: string}): string {
-	const key = options.apiKey ?? process.env['LISTENHUB_API_KEY'];
+	const key = options.apiKey ?? process.env['COLI_LISTENHUB_API_KEY'];
 	if (!key) {
 		throw new Error(
-			'API key required. Use --api-key or set LISTENHUB_API_KEY environment variable. Get an API key from https://listenhub.ai/settings/api-keys',
+			'API key required. Use --api-key or set COLI_LISTENHUB_API_KEY environment variable. Get an API key from https://listenhub.ai/settings/api-keys',
 		);
 	}
 
@@ -21,7 +21,7 @@ export function register(program: Command) {
 		.argument('[text]', 'Text to synthesize')
 		.option(
 			'--api-key <key>',
-			'ListenHub API key (or set LISTENHUB_API_KEY environment variable)',
+			'ListenHub API key (or set COLI_LISTENHUB_API_KEY environment variable)',
 		)
 		.option('--voice <id>', 'Speaker ID to use')
 		.option('--model <name>', 'Model to use (default: flowtts)')
