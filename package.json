@@ -25,11 +25,11 @@
 		"execa": "^9.6.1",
 		"ky": "^1.14.3",
 		"mac-say": "^0.3.3",
-		"sherpa-onnx-node": "^1.12.28"
+		"sherpa-onnx-node": "^1.12.29"
 	},
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^8.1.0",
-		"@types/node": "^25.4.0",
+		"@types/node": "^25.5.0",
 		"del-cli": "^7.0.0",
 		"typescript": "^5.9.3",
 		"xo": "^1.2.3"
