@@ -1,5 +1,6 @@
 import process from 'node:process';
 import type {Command} from 'commander';
+import {defaultSpeaker} from '../_api/constants.js';
 import type {SpeakerLanguage} from '../_api/types.js';
 import {listSpeakers, runCloudTts} from './cloud-tts.js';
 
@@ -27,10 +28,7 @@ export function register(program: Command) {
 		.option('--model <name>', 'Model to use (default: flowtts)')
 		.option('-o, --output <file>', 'Save audio to file')
 		.option('--list-speakers', 'List available speakers')
-		.option(
-			'--language <lang>',
-			'Filter speakers by language (use with --list-speakers)',
-		)
+		.option('--language <lang>', 'Speaker language (en, zh, ja)')
 		.option('-j, --json', 'Output in JSON format (use with --list-speakers)')
 		.action(
 			async (
@@ -69,16 +67,19 @@ export function register(program: Command) {
 					throw new Error('Please provide text to synthesize.');
 				}
 
-				if (!options.voice) {
+				const voice =
+					options.voice ??
+					(options.language && defaultSpeaker[options.language]);
+				if (!voice) {
 					throw new Error(
-						'Please specify a speaker with --voice. Use --list-speakers to see available speakers.',
+						'Please specify a speaker with --voice or a language with --language. Use --list-speakers to see available speakers.',
 					);
 				}
 
 				const apiKey = getApiKey(options);
 				await runCloudTts(text, {
 					apiKey,
-					voice: options.voice,
+					voice,
 					model: options.model,
 					output: options.output,
 				});

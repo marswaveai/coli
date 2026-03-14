@@ -1,6 +1,8 @@
 import ky, {type KyInstance} from 'ky';
 import type {ApiResponse, SpeakerLanguage} from './types.js';
 
+export * from './constants.js';
+
 export type * from './types.js';
 
 export type ListenHubApiOptions = {
@@ -23,7 +25,7 @@ export class ListenHubApi {
 	/**
 	 * Get a list of available speakers.
 	 * @param options - The options for the speakers request.
-	 * @param options.language - Optional. The language of the speakers to get, defaults to list all languages.
+	 * @param options.language - Optional. The language of the speakers to get, defaults to English.
 	 * @returns A list of available speakers.
 	 * @see {@link https://listenhub.ai/docs/en/openapi/api-reference/speakers#list-available-speakers|List Available Speakers}
 	 */

@@ -22,6 +22,7 @@ Examples
   $ coli asr -j recording.m4a
   $ coli tts "Hello world"
   $ coli tts -v Samantha -r 200 "Hello world"
+  $ coli cloud-tts --language en "Hello world"
   $ coli cloud-tts --voice cozy-man-english "Hello world"
 ```
 

@@ -24,9 +24,9 @@ for (const speaker of result.data.items) {
 
 **Options**
 
-| Property   | Type                   | Description                                    |
-| ---------- | ---------------------- | ---------------------------------------------- |
-| `language` | `'en' \| 'zh' \| 'ja'` | Filter speakers by language. Omit to list all. |
+| Property   | Type                   | Description                                       |
+| ---------- | ---------------------- | ------------------------------------------------- |
+| `language` | `'en' \| 'zh' \| 'ja'` | Filter speakers by language. Defaults to English. |
 
 **Response item**
 

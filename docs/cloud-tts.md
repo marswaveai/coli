@@ -15,7 +15,10 @@ coli cloud-tts --list-speakers
 # List speakers filtered by language, in JSON
 coli cloud-tts --list-speakers --language en --json
 
-# Generate speech and play directly
+# Generate speech with default voice for a language
+coli cloud-tts --language en "Hello world"
+
+# Generate speech with a specific speaker
 coli cloud-tts --voice cozy-man-english "Hello world"
 
 # Save to file
@@ -30,10 +33,10 @@ coli cloud-tts --voice cozy-man-english --model flowtts "Hello world"
 ```
 --api-key <key>       ListenHub API key (or set COLI_LISTENHUB_API_KEY)
 --voice <id>          Speaker ID to use
+--language <lang>     Speaker language (en, zh, ja). Uses default voice if --voice is omitted
 --model <name>        Model to use (default: flowtts)
 -o, --output <file>   Save audio to file
 --list-speakers       List available speakers
---language <lang>     Filter speakers by language: en, zh, ja (use with --list-speakers)
 -j, --json            Output in JSON format (use with --list-speakers)
 ```
 
