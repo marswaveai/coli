@@ -34,6 +34,32 @@ coli asr --model whisper recording.wav
 --model        Model to use: whisper, sensevoice (default: sensevoice)
 ```
 
+### `coli asr-stream`
+
+Stream speech recognition from stdin. Expects raw 16kHz mono s16le PCM audio piped in.
+
+```sh
+# From microphone (macOS)
+ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream
+
+# With VAD
+ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
+
+# JSON output (one JSON object per line)
+ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad --json
+
+# From a file
+ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
+```
+
+**Options**
+
+```
+-j, --json              Output each result as a JSON line
+--vad                   Enable voice activity detection
+--asr-interval-ms <ms>  Recognition interval in ms (default: 1000, ignored with --vad)
+```
+
 **JSON output example**
 
 ```json
