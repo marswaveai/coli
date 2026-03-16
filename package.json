@@ -16,6 +16,7 @@
 	"scripts": {
 		"prepublishOnly": "node --run build",
 		"clean": "del-cli distribution",
+		"dev": "node --run clean && tsc --watch",
 		"build": "node --run clean && tsc && chmod +x distribution/cli.js",
 		"pretest": "node --run build",
 		"test": "xo"
