@@ -45,6 +45,7 @@ export function register(program: Command) {
 
 				async function* stdinAudio() {
 					for await (const chunk of process.stdin) {
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 						const buf = Buffer.from(chunk as Uint8Array);
 						const pcm = new Int16Array(
 							buf.buffer,

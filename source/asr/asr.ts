@@ -28,6 +28,7 @@ type SherpaOnnx = {
 // Loaded lazily to avoid loading the native addon until needed
 let _sherpaOnnx: SherpaOnnx | undefined;
 function sherpaOnnx(): SherpaOnnx {
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 	_sherpaOnnx ??= require('sherpa-onnx-node') as SherpaOnnx;
 	return _sherpaOnnx;
 }
