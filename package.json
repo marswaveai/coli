@@ -5,9 +5,9 @@
 	"description": "A CLI for the Cola",
 	"repository": "marswaveai/coli",
 	"type": "module",
-	"bin": "distribution/cli.js",
-	"exports": "./distribution/index.js",
-	"types": "distribution",
+	"bin": "distribution/source/cli.js",
+	"exports": "./distribution/source/index.js",
+	"types": "distribution/source",
 	"files": [
 		"distribution",
 		"docs"
@@ -17,7 +17,7 @@
 		"prepublishOnly": "node --run build",
 		"clean": "del-cli distribution",
 		"dev": "node --run clean && tsc --watch",
-		"build": "node --run clean && tsc && chmod +x distribution/cli.js",
+		"build": "node --run clean && tsc && chmod +x distribution/source/cli.js",
 		"pretest": "node --run build",
 		"test": "xo"
 	},
@@ -26,13 +26,13 @@
 		"execa": "^9.6.1",
 		"ky": "^1.14.3",
 		"mac-say": "^0.3.3",
-		"sherpa-onnx-node": "^1.12.29"
+		"sherpa-onnx-node": "^1.12.33"
 	},
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^8.1.0",
 		"@types/node": "^25.5.0",
 		"del-cli": "^7.0.0",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.2",
 		"xo": "^2.0.2"
 	}
 }

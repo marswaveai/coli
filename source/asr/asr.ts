@@ -36,6 +36,7 @@ function sherpaOnnx(): SherpaOnnx {
 async function convertToWav(inputPath: string): Promise<string> {
 	const outputPath = path.join(os.tmpdir(), `coli-${Date.now()}.wav`);
 	try {
+		// eslint-disable-next-line @typescript-eslint/await-thenable
 		await execa('ffmpeg', [
 			'-i',
 			inputPath,

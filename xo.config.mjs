@@ -2,6 +2,7 @@ const xoConfig = [
 	{
 		prettier: true,
 		rules: {
+			'@typescript-eslint/only-throw-error': 'off',
 			'sort-imports': [
 				'error',
 				{

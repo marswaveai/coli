@@ -62,6 +62,7 @@ export async function runCloudTts(
 	const audio = await collectStream(stream);
 	fs.writeFileSync(mp3Path, audio);
 	try {
+		// eslint-disable-next-line @typescript-eslint/await-thenable
 		await execa('afplay', [mp3Path]);
 	} finally {
 		fs.unlinkSync(mp3Path);

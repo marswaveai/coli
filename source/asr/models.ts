@@ -77,6 +77,7 @@ async function downloadModel(entry: ModelEntry): Promise<void> {
 	process.stdout.write('\n');
 	console.log('  Extracting...');
 
+	// eslint-disable-next-line @typescript-eslint/await-thenable
 	await execa('tar', ['xjf', tarPath, '-C', modelsDirectory]);
 	fs.unlinkSync(tarPath);
 

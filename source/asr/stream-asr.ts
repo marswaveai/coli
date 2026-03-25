@@ -177,6 +177,7 @@ async function streamWithVad(
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/await-thenable
 	for await (const chunk of audio) {
 		const combined = new Float32Array(pending.length + chunk.length);
 		combined.set(pending);
@@ -214,6 +215,7 @@ async function streamWithInterval(
 	let lastRecognizedAt = 0;
 	let lastText = '';
 
+	// eslint-disable-next-line @typescript-eslint/await-thenable
 	for await (const chunk of audio) {
 		buffers.push(chunk);
 		totalSamples += chunk.length;
