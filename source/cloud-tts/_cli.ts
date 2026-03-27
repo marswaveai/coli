@@ -15,6 +15,10 @@ function getApiKey(options: {apiKey?: string}): string {
 	return key;
 }
 
+function getBaseUrl(options: {baseUrl?: string}): string | undefined {
+	return options.baseUrl ?? process.env['COLI_TTS_BASE_URL'];
+}
+
 export function register(program: Command) {
 	program
 		.command('cloud-tts')
@@ -26,6 +30,10 @@ export function register(program: Command) {
 		)
 		.option('--voice <id>', 'Speaker ID to use')
 		.option('--model <name>', 'Model to use (default: flowtts)')
+		.option(
+			'--base-url <url>',
+			'Base URL for TTS API (or set COLI_TTS_BASE_URL environment variable)',
+		)
 		.option('-o, --output <file>', 'Save audio to file')
 		.option('--list-speakers', 'List available speakers')
 		.option('--language <lang>', 'Speaker language (en, zh, ja)')
@@ -37,6 +45,7 @@ export function register(program: Command) {
 					apiKey?: string;
 					voice?: string;
 					model?: string;
+					baseUrl?: string;
 					output?: string;
 					listSpeakers?: boolean;
 					language?: SpeakerLanguage;
@@ -45,8 +54,10 @@ export function register(program: Command) {
 			) => {
 				if (options.listSpeakers) {
 					const apiKey = getApiKey(options);
+					const baseUrl = getBaseUrl(options);
 					const speakers = await listSpeakers({
 						apiKey,
+						baseUrl,
 						language: options.language,
 					});
 
@@ -77,8 +88,10 @@ export function register(program: Command) {
 				}
 
 				const apiKey = getApiKey(options);
+				const baseUrl = getBaseUrl(options);
 				await runCloudTts(text, {
 					apiKey,
+					baseUrl,
 					voice,
 					model: options.model,
 					output: options.output,

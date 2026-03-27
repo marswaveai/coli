@@ -12,15 +12,20 @@ export type CloudTtsOptions = {
 	voice: string;
 	model?: string;
 	output?: string;
+	baseUrl?: string;
 };
 
 export type ListSpeakersOptions = {
 	apiKey: string;
 	language?: SpeakerLanguage;
+	baseUrl?: string;
 };
 
 export async function listSpeakers(options: ListSpeakersOptions) {
-	const api = new ListenHubApi({apiKey: options.apiKey});
+	const api = new ListenHubApi({
+		apiKey: options.apiKey,
+		baseUrl: options.baseUrl,
+	});
 	const result = await api.getAvailableSpeakers({
 		language: options.language,
 	});
@@ -45,7 +50,10 @@ export async function runCloudTts(
 	text: string,
 	options: CloudTtsOptions,
 ): Promise<void> {
-	const api = new ListenHubApi({apiKey: options.apiKey});
+	const api = new ListenHubApi({
+		apiKey: options.apiKey,
+		baseUrl: options.baseUrl,
+	});
 	const stream = await api.tts({
 		input: text,
 		voice: options.voice,

@@ -8,6 +8,12 @@ Client for the [ListenHub OpenAPI](https://listenhub.ai/docs/en/openapi), provid
 import {ListenHubApi} from '@marswave/coli';
 
 const api = new ListenHubApi({apiKey: 'lh_sk_...'});
+
+// Or with a custom base URL
+const api = new ListenHubApi({
+	apiKey: 'lh_sk_...',
+	baseUrl: 'https://custom-api.example.com/openapi',
+});
 ```
 
 ## `getAvailableSpeakers(options?)`

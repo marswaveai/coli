@@ -7,14 +7,15 @@ export type * from './types.js';
 
 export type ListenHubApiOptions = {
 	apiKey: string;
+	baseUrl?: string;
 };
 
 export class ListenHubApi {
 	public api: KyInstance;
 
-	constructor({apiKey}: ListenHubApiOptions) {
+	constructor({apiKey, baseUrl}: ListenHubApiOptions) {
 		this.api = ky.extend({
-			prefixUrl: 'https://api.marswave.ai/openapi',
+			prefixUrl: baseUrl ?? 'https://api.marswave.ai/openapi',
 			headers: {
 				// eslint-disable-next-line @typescript-eslint/naming-convention
 				Authorization: `Bearer ${apiKey}`,

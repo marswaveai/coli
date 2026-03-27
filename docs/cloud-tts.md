@@ -5,6 +5,7 @@ Generate speech using [ListenHub OpenAPI](https://listenhub.ai/docs/en/openapi).
 ## Prerequisites
 
 - A ListenHub API key. Pass it via `--api-key` or set the `COLI_LISTENHUB_API_KEY` environment variable.
+- Optionally, a custom base URL via `--base-url` or the `COLI_TTS_BASE_URL` environment variable.
 
 ## CLI
 
@@ -35,6 +36,7 @@ coli cloud-tts --voice cozy-man-english --model flowtts "Hello world"
 --voice <id>          Speaker ID to use
 --language <lang>     Speaker language (en, zh, ja). Uses default voice if --voice is omitted
 --model <name>        Model to use (default: flowtts)
+--base-url <url>      Base URL for TTS API (or set COLI_TTS_BASE_URL)
 -o, --output <file>   Save audio to file
 --list-speakers       List available speakers
 -j, --json            Output in JSON format (use with --list-speakers)
@@ -65,6 +67,7 @@ for (const speaker of speakers) {
 | ---------- | ---------------------- | ---------------------------------------------- |
 | `apiKey`   | `string`               | ListenHub API key                              |
 | `language` | `'en' \| 'zh' \| 'ja'` | Filter speakers by language. Omit to list all. |
+| `baseUrl`  | `string`               | Custom base URL for TTS API (optional)         |
 
 ### `runCloudTts(text, options)`
 
@@ -83,9 +86,10 @@ await runCloudTts('Hello world', {
 
 **Options**
 
-| Property | Type     | Description                                    |
-| -------- | -------- | ---------------------------------------------- |
-| `apiKey` | `string` | ListenHub API key                              |
-| `voice`  | `string` | Speaker ID (from `listSpeakers`)               |
-| `model`  | `string` | Model to use (optional, defaults to `flowtts`) |
-| `output` | `string` | Save to file instead of playing directly       |
+| Property  | Type     | Description                                    |
+| --------- | -------- | ---------------------------------------------- |
+| `apiKey`  | `string` | ListenHub API key                              |
+| `voice`   | `string` | Speaker ID (from `listSpeakers`)               |
+| `model`   | `string` | Model to use (optional, defaults to `flowtts`) |
+| `output`  | `string` | Save to file instead of playing directly       |
+| `baseUrl` | `string` | Custom base URL for TTS API (optional)         |
