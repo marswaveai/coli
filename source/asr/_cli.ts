@@ -83,7 +83,6 @@ export function register(program: Command) {
 				}
 
 				async function* stdinAudio() {
-					// eslint-disable-next-line @typescript-eslint/await-thenable
 					for await (const chunk of process.stdin) {
 						// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 						const buf = Buffer.from(chunk as Uint8Array);

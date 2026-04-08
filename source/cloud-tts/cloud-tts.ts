@@ -2,6 +2,7 @@ import {Buffer} from 'node:buffer';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import {Writable} from 'node:stream';
 import {execa} from 'execa';
 import {ListenHubApi} from '../_api/listenhub-openapi.js';
@@ -66,12 +67,25 @@ export async function runCloudTts(
 		return;
 	}
 
+	if (process.platform === 'win32') {
+		throw new Error(
+			'Direct audio playback is not supported on Windows. Use -o <file> to save the audio file.',
+		);
+	}
+
 	const mp3Path = path.join(os.tmpdir(), `coli-cloud-tts-${Date.now()}.mp3`);
 	const audio = await collectStream(stream);
 	fs.writeFileSync(mp3Path, audio);
 	try {
-		// eslint-disable-next-line @typescript-eslint/await-thenable
-		await execa('afplay', [mp3Path]);
+		await (process.platform === 'darwin'
+			? execa('afplay', [mp3Path])
+			: execa('ffplay', [
+					'-nodisp',
+					'-autoexit',
+					'-loglevel',
+					'quiet',
+					mp3Path,
+				]));
 	} finally {
 		fs.unlinkSync(mp3Path);
 	}

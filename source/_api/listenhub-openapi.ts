@@ -54,7 +54,6 @@ export class ListenHubApi {
 	 * @see {@link https://listenhub.ai/docs/en/openapi/api-reference/flowspeech|Streaming TTS}
 	 */
 	async tts(options: {input: string; voice: string; model?: string}) {
-		// eslint-disable-next-line @typescript-eslint/await-thenable
 		const response = await this.api.post('v1/tts', {json: options});
 		if (!response.body) throw new Error('Empty response body from TTS API');
 		return response.body;
