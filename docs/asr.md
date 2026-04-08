@@ -25,6 +25,9 @@ coli asr -j recording.m4a
 
 # Select model
 coli asr --model whisper recording.wav
+
+# Specify language (sensevoice only)
+coli asr --language zh recording.m4a
 ```
 
 **Options**
@@ -32,6 +35,7 @@ coli asr --model whisper recording.wav
 ```
 -j, --json     Output result in JSON format
 --model        Model to use: whisper, sensevoice (default: sensevoice)
+--language     Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
 ```
 
 ### `coli asr-stream`
@@ -57,6 +61,7 @@ ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
 ```
 -j, --json              Output each result as a JSON line
 --vad                   Enable voice activity detection
+--language <lang>       Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
 --asr-interval-ms <ms>  Recognition interval in ms (default: 1000, ignored with --vad)
 ```
 
@@ -102,14 +107,22 @@ await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
 
 // JSON output
 await runAsr('recording.m4a', {json: true, model: 'whisper'});
+
+// Force Chinese language (sensevoice only)
+await runAsr('recording.m4a', {
+	json: false,
+	model: 'sensevoice',
+	language: 'zh',
+});
 ```
 
 **Options**
 
-| Property | Type                        | Description                                                                   |
-| -------- | --------------------------- | ----------------------------------------------------------------------------- |
-| `json`   | `boolean`                   | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text |
-| `model`  | `'whisper' \| 'sensevoice'` | Which model to use for recognition                                            |
+| Property   | Type                        | Description                                                                                         |
+| ---------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `json`     | `boolean`                   | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text                       |
+| `model`    | `'whisper' \| 'sensevoice'` | Which model to use for recognition                                                                  |
+| `language` | `SenseVoiceLanguage`        | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
 
 ### `getModelPath(model)`
 
@@ -178,21 +191,22 @@ await streamAsr(audioSource, {
 
 **Options**
 
-| Property        | Type                                | Description                                                                  |
-| --------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
-| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result                                |
-| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)                                   |
-| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD |
-| `vad`           | `boolean \| VadOptions`             | Enable VAD. Pass `true` for defaults or a `VadOptions` object                |
+| Property        | Type                                | Description                                                                                         |
+| --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result                                                       |
+| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)                                                          |
+| `language`      | `SenseVoiceLanguage`                | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
+| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD                      |
+| `vad`           | `boolean \| VadOptions`             | Enable VAD. Pass `true` for defaults or a `VadOptions` object                                       |
 
 **VadOptions**
 
-| Property             | Type     | Description                                         |
-| -------------------- | -------- | --------------------------------------------------- |
-| `threshold`          | `number` | Speech detection threshold (default: `0.5`)         |
-| `minSpeechDuration`  | `number` | Minimum speech duration in seconds (default: `0.25`) |
-| `minSilenceDuration` | `number` | Minimum silence to end a segment in seconds (default: `0.5`) |
-| `maxSpeechDuration`  | `number`  | Maximum speech segment duration in seconds (default: `15`)            |
+| Property               | Type      | Description                                                        |
+| ---------------------- | --------- | ------------------------------------------------------------------ |
+| `threshold`            | `number`  | Speech detection threshold (default: `0.5`)                        |
+| `minSpeechDuration`    | `number`  | Minimum speech duration in seconds (default: `0.25`)               |
+| `minSilenceDuration`   | `number`  | Minimum silence to end a segment in seconds (default: `0.5`)       |
+| `maxSpeechDuration`    | `number`  | Maximum speech segment duration in seconds (default: `15`)         |
 | `enableExternalBuffer` | `boolean` | Use external buffer for VAD speech segments (default: `undefined`) |
 
 **Result**
@@ -220,8 +234,8 @@ On first run, coli automatically downloads required models to `~/.coli/models/`:
 
 **VAD Model**
 
-| Name         | Model                                                               | Size   |
-| ------------ | ------------------------------------------------------------------- | ------ |
+| Name         | Model                                                                | Size    |
+| ------------ | -------------------------------------------------------------------- | ------- |
 | `silero_vad` | [Silero VAD](https://github.com/snakers4/silero-vad) (k2-fsa export) | ~629 KB |
 
 `streamAsr` uses the SenseVoice model for recognition. VAD uses Silero VAD and is downloaded separately via `ensureVadModel()`.

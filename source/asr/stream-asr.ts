@@ -1,5 +1,6 @@
 import {createRequire} from 'node:module';
 import path from 'node:path';
+import type {SenseVoiceLanguage} from './asr.js';
 import {getModelPath, getVadModelPath} from './models.js';
 
 const require = createRequire(import.meta.url);
@@ -54,7 +55,7 @@ function sherpaOnnx(): SherpaOnnx {
 const defaultSampleRate = 16_000;
 const defaultAsrIntervalMs = 1000;
 
-function createRecognizer(): OfflineRecognizer {
+function createRecognizer(language?: SenseVoiceLanguage): OfflineRecognizer {
 	const modelDir = getModelPath('sensevoice');
 	const onnx = sherpaOnnx();
 
@@ -64,6 +65,7 @@ function createRecognizer(): OfflineRecognizer {
 			senseVoice: {
 				model: path.join(modelDir, 'model.int8.onnx'),
 				useInverseTextNormalization: 1,
+				language: language ?? 'auto',
 			},
 			tokens: path.join(modelDir, 'tokens.txt'),
 			numThreads: 2,
@@ -119,6 +121,7 @@ export type VadOptions = {
 export type StreamAsrOptions = {
 	sampleRate?: number;
 	asrIntervalMs?: number;
+	language?: SenseVoiceLanguage;
 	vad?: boolean | VadOptions;
 	onResult: (result: AsrStreamResult) => void;
 };
@@ -159,7 +162,7 @@ async function streamWithVad(
 	options: StreamAsrOptions,
 	vadOptions: VadOptions,
 ): Promise<void> {
-	const recognizer = createRecognizer();
+	const recognizer = createRecognizer(options.language);
 	const vad = createVad(vadOptions);
 	const {windowSize} = vad.config.sileroVad;
 
@@ -208,7 +211,7 @@ async function streamWithInterval(
 	const inputSampleRate = options.sampleRate ?? defaultSampleRate;
 	const intervalMs = options.asrIntervalMs ?? defaultAsrIntervalMs;
 	const chunkInterval = (defaultSampleRate * intervalMs) / 1000;
-	const recognizer = createRecognizer();
+	const recognizer = createRecognizer(options.language);
 
 	const buffers: Float32Array[] = [];
 	let totalSamples = 0;

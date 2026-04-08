@@ -64,7 +64,9 @@ async function convertToWav(inputPath: string): Promise<string> {
 
 type ModelName = 'whisper' | 'sensevoice';
 
-function createRecognizer(model: ModelName) {
+export type SenseVoiceLanguage = 'auto' | 'zh' | 'en' | 'ja' | 'ko' | 'yue';
+
+function createRecognizer(model: ModelName, language?: SenseVoiceLanguage) {
 	const modelDir = getModelPath(model);
 	const onnx = sherpaOnnx();
 
@@ -90,6 +92,7 @@ function createRecognizer(model: ModelName) {
 			senseVoice: {
 				model: path.join(modelDir, 'model.int8.onnx'),
 				useInverseTextNormalization: 1,
+				language: language ?? 'auto',
 			},
 			tokens: path.join(modelDir, 'tokens.txt'),
 			numThreads: 2,
@@ -102,6 +105,7 @@ function createRecognizer(model: ModelName) {
 export type AsrOptions = {
 	json: boolean;
 	model: ModelName;
+	language?: SenseVoiceLanguage;
 };
 
 export async function runAsr(
@@ -126,7 +130,7 @@ export async function runAsr(
 
 	try {
 		const onnx = sherpaOnnx();
-		const recognizer = createRecognizer(options.model);
+		const recognizer = createRecognizer(options.model, options.language);
 		const stream = recognizer.createStream();
 		const wave = onnx.readWave(wavPath);
 

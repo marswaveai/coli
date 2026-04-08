@@ -5,6 +5,7 @@ export {
 	getVadModelPath,
 	modelDisplayNames,
 } from './models.js';
+export {runAsr, type AsrOptions, type SenseVoiceLanguage} from './asr.js';
 export {
 	streamAsr,
 	type AsrStreamResult,

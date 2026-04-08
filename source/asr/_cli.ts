@@ -1,7 +1,7 @@
 import {Buffer} from 'node:buffer';
 import process from 'node:process';
 import type {Command} from 'commander';
-import {runAsr} from './asr.js';
+import {type SenseVoiceLanguage, runAsr} from './asr.js';
 import {ensureModels, ensureVadModel} from './models.js';
 import {streamAsr} from './stream-asr.js';
 
@@ -12,17 +12,39 @@ export function register(program: Command) {
 		.argument('<file>', 'Audio file to transcribe')
 		.option('-j, --json', 'Output result in JSON format', false)
 		.option('--model <name>', 'Model to use: whisper, sensevoice', 'sensevoice')
-		.action(async (file: string, options: {json: boolean; model: string}) => {
-			const {model} = options;
-			if (model !== 'whisper' && model !== 'sensevoice') {
-				throw new Error(
-					`Unknown model "${model}". Use "whisper" or "sensevoice".`,
-				);
-			}
+		.option(
+			'--language <lang>',
+			'Language for sensevoice: auto, zh, en, ja, ko, yue',
+			'auto',
+		)
+		.action(
+			async (
+				file: string,
+				options: {json: boolean; model: string; language: string},
+			) => {
+				const {model} = options;
+				if (model !== 'whisper' && model !== 'sensevoice') {
+					throw new Error(
+						`Unknown model "${model}". Use "whisper" or "sensevoice".`,
+					);
+				}
 
-			await ensureModels([model]);
-			await runAsr(file, {json: options.json, model});
-		});
+				const validLanguages = new Set(['auto', 'zh', 'en', 'ja', 'ko', 'yue']);
+				if (!validLanguages.has(options.language)) {
+					throw new Error(
+						`Unknown language "${options.language}". Use one of: auto, zh, en, ja, ko, yue.`,
+					);
+				}
+
+				await ensureModels([model]);
+				await runAsr(file, {
+					json: options.json,
+					model,
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+					language: options.language as SenseVoiceLanguage,
+				});
+			},
+		);
 
 	program
 		.command('asr-stream')
@@ -32,12 +54,29 @@ export function register(program: Command) {
 		.option('-j, --json', 'Output each result as a JSON line', false)
 		.option('--vad', 'Enable voice activity detection', false)
 		.option(
+			'--language <lang>',
+			'Language for sensevoice: auto, zh, en, ja, ko, yue',
+			'auto',
+		)
+		.option(
 			'--asr-interval-ms <ms>',
 			'Recognition interval in ms (ignored with --vad)',
 			'1000',
 		)
 		.action(
-			async (options: {json: boolean; vad: boolean; asrIntervalMs: string}) => {
+			async (options: {
+				json: boolean;
+				vad: boolean;
+				language: string;
+				asrIntervalMs: string;
+			}) => {
+				const validLanguages = new Set(['auto', 'zh', 'en', 'ja', 'ko', 'yue']);
+				if (!validLanguages.has(options.language)) {
+					throw new Error(
+						`Unknown language "${options.language}". Use one of: auto, zh, en, ja, ko, yue.`,
+					);
+				}
+
 				await ensureModels();
 				if (options.vad) {
 					await ensureVadModel();
@@ -63,6 +102,8 @@ export function register(program: Command) {
 				}
 
 				await streamAsr(stdinAudio(), {
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+					language: options.language as SenseVoiceLanguage,
 					vad: options.vad || undefined,
 					asrIntervalMs: Number(options.asrIntervalMs),
 					onResult(result) {
