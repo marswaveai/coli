@@ -6,6 +6,7 @@ export {
 	modelDisplayNames,
 } from './models.js';
 export {
+	convertToWav,
 	readWave,
 	runAsr,
 	type AsrOptions,

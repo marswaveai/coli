@@ -1,8 +1,14 @@
 import {Buffer} from 'node:buffer';
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import type {Command} from 'commander';
-import {type SenseVoiceLanguage, readWave, runAsr} from './asr.js';
+import {
+	type SenseVoiceLanguage,
+	convertToWav,
+	readWave,
+	runAsr,
+} from './asr.js';
 import {ensureModels, ensureVadModel} from './models.js';
 import {streamAsr} from './stream-asr.js';
 
@@ -38,14 +44,31 @@ export function register(program: Command) {
 				}
 
 				await ensureModels([model]);
-				const ext = path.extname(file).toLowerCase();
-				const input = ext === '.wav' ? readWave(path.resolve(file)) : file;
-				await runAsr(input, {
-					json: options.json,
-					model,
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-					language: options.language as SenseVoiceLanguage,
-				});
+				const resolvedPath = path.resolve(file);
+				const ext = path.extname(resolvedPath).toLowerCase();
+
+				let wavPath: string | undefined;
+				let needsCleanup = false;
+				if (ext === '.wav') {
+					wavPath = resolvedPath;
+				} else {
+					wavPath = await convertToWav(resolvedPath);
+					needsCleanup = true;
+				}
+
+				try {
+					const input = readWave(wavPath);
+					await runAsr(input, {
+						json: options.json,
+						model,
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+						language: options.language as SenseVoiceLanguage,
+					});
+				} finally {
+					if (needsCleanup && fs.existsSync(wavPath)) {
+						fs.unlinkSync(wavPath);
+					}
+				}
 			},
 		);
 

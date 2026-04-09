@@ -12,6 +12,6 @@ Direct audio playback relies on platform-specific tools (`afplay` on macOS, `ffp
 
 ### COLI_DEP002: File path input for ASR
 
-- Affected: `runAsr()` with a file path string, `coli asr` with non-WAV files
+- Affected: `runAsr()` with a file path string
 
-Passing a file path string to `runAsr()` is deprecated. Non-WAV formats require a system-installed `ffmpeg` for conversion, which adds an external dependency. Pass an `AudioData` object (`{ sampleRate: number, samples: Float32Array }`) instead. The caller is responsible for reading and decoding the audio file. The CLI still supports WAV files directly without deprecation.
+Passing a file path string to `runAsr()` is deprecated. Non-WAV formats require a system-installed `ffmpeg` for conversion, which adds an external dependency. Pass an `AudioData` object (`{ sampleRate: number, samples: Float32Array }`) instead. The caller is responsible for reading and decoding the audio file. The `coli asr` CLI handles conversion internally and is not affected by this deprecation.

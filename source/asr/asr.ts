@@ -39,7 +39,7 @@ export function readWave(filename: string): AudioData {
 	return sherpaOnnx().readWave(filename);
 }
 
-async function convertToWav(inputPath: string): Promise<string> {
+export async function convertToWav(inputPath: string): Promise<string> {
 	const outputPath = path.join(os.tmpdir(), `coli-${Date.now()}.wav`);
 	try {
 		await execa('ffmpeg', [
