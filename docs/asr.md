@@ -4,30 +4,22 @@ Transcribe audio files using speech recognition, powered by [sherpa-onnx](https:
 
 ## Prerequisites
 
-- [ffmpeg](https://ffmpeg.org/) (for non-WAV audio formats like `.m4a`, `.mp3`, etc.)
-
-```sh
-# macOS
-brew install ffmpeg
-
-# Debian / Ubuntu
-sudo apt install ffmpeg
-```
+No external dependencies are required for WAV files. Non-WAV format support via the CLI is deprecated and requires [ffmpeg](https://ffmpeg.org/) (see [COLI_DEP002](deprecations.md#coli_dep002-file-path-input-for-asr)).
 
 ## CLI
 
 ```sh
 # Plain text output
-coli asr recording.m4a
+coli asr recording.wav
 
 # JSON output
-coli asr -j recording.m4a
+coli asr -j recording.wav
 
 # Select model
 coli asr --model whisper recording.wav
 
 # Specify language (sensevoice only)
-coli asr --language zh recording.m4a
+coli asr --language zh recording.wav
 ```
 
 **Options**
@@ -93,27 +85,38 @@ await ensureModels(); // downloads sensevoice only
 await ensureModels(['whisper', 'sensevoice']); // downloads both
 ```
 
-### `runAsr(filePath, options)`
+### `readWave(filename)`
 
-Run speech recognition on an audio file. Results are printed to stdout.
+Read a WAV file and return an `AudioData` object. Use this to load WAV files for `runAsr`.
+
+```js
+import {ensureModels, readWave, runAsr} from '@marswave/coli';
+
+await ensureModels();
+
+const audio = readWave('/path/to/recording.wav');
+await runAsr(audio, {json: false, model: 'sensevoice'});
+```
+
+### `runAsr(input, options)`
+
+Run speech recognition on audio data. Results are printed to stdout.
+
+The `input` parameter accepts either an `AudioData` object (recommended) or a file path string (deprecated).
 
 ```js
 import {ensureModels, runAsr} from '@marswave/coli';
 
 await ensureModels();
 
-// Plain text output
+// Recommended: pass AudioData directly
+await runAsr(
+	{sampleRate: 16000, samples: myFloat32Array},
+	{json: false, model: 'sensevoice'},
+);
+
+// Deprecated: file path input (requires ffmpeg for non-WAV formats)
 await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
-
-// JSON output
-await runAsr('recording.m4a', {json: true, model: 'whisper'});
-
-// Force Chinese language (sensevoice only)
-await runAsr('recording.m4a', {
-	json: false,
-	model: 'sensevoice',
-	language: 'zh',
-});
 ```
 
 **Options**
@@ -242,4 +245,4 @@ On first run, coli automatically downloads required models to `~/.coli/models/`:
 
 ## Supported audio formats
 
-WAV files are passed directly to the recognizer. All other formats (m4a, mp3, ogg, flac, etc.) are automatically converted to 16 kHz mono WAV via ffmpeg.
+The CLI accepts WAV files directly. For the programmatic API, use `readWave()` to load WAV files into an `AudioData` object, or provide your own `AudioData` from any source. Non-WAV file path input is deprecated (see [COLI_DEP002](deprecations.md#coli_dep002-file-path-input-for-asr)).

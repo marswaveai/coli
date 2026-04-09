@@ -56,6 +56,7 @@ await runTts('Hello world', {voice: 'Samantha', rate: 200});
 - [TTS](docs/tts.md) — Text-to-speech synthesis (macOS only)
 - [Cloud TTS](docs/cloud-tts.md) — Cloud-based TTS via ListenHub OpenAPI
 - [ListenHub OpenAPI](docs/listenhub-openapi.md) — ListenHub OpenAPI client
+- [Deprecations](docs/deprecations.md) — Deprecated APIs
 
 ## License
 

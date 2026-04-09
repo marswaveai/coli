@@ -27,3 +27,11 @@ For core abilities, each ability should have a folder, like ASR does. Here is th
     - \_cli.ts (CLI command definition and export a `register` function for registering)
     - \_index.ts (export all the public API)
     - ... (main implementation and other helpers)
+
+## Deprecations
+
+When deprecating a feature:
+
+1. Add a new constant in `source/deprecations.ts` with a JSDoc comment explaining the reason. Use the naming convention `deprecationXxx` and the next available code `COLI_DEPxxx`.
+2. Emit the warning in the affected code path using `process.emitWarning(message, {type: 'DeprecationWarning', code: deprecationXxx})`.
+3. Document the deprecation in `docs/deprecations.md` following the existing format.

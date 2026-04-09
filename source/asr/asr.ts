@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import {execa} from 'execa';
+import {deprecationAsrFilePath} from '../deprecations.js';
 import {getModelPath, modelDisplayNames} from './models.js';
 
 const require = createRequire(import.meta.url);
@@ -31,6 +33,10 @@ function sherpaOnnx(): SherpaOnnx {
 	// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 	_sherpaOnnx ??= require('sherpa-onnx-node') as SherpaOnnx;
 	return _sherpaOnnx;
+}
+
+export function readWave(filename: string): AudioData {
+	return sherpaOnnx().readWave(filename);
 }
 
 async function convertToWav(inputPath: string): Promise<string> {
@@ -107,31 +113,47 @@ export type AsrOptions = {
 	language?: SenseVoiceLanguage;
 };
 
+export type AudioData = {
+	sampleRate: number;
+	samples: Float32Array;
+};
+
 export async function runAsr(
-	filePath: string,
+	input: string | AudioData,
 	options: AsrOptions,
 ): Promise<void> {
-	const resolvedPath = path.resolve(filePath);
-	if (!fs.existsSync(resolvedPath)) {
-		throw new Error(`File not found: ${resolvedPath}`);
-	}
-
-	const ext = path.extname(resolvedPath).toLowerCase();
-	let wavPath: string;
+	let wave: {sampleRate: number; samples: Float32Array};
 	let needsCleanup = false;
+	let wavPath: string | undefined;
 
-	if (ext === '.wav') {
-		wavPath = resolvedPath;
+	if (typeof input === 'string') {
+		process.emitWarning(
+			'Passing a file path to runAsr() is deprecated. Pass an AudioData object ({ sampleRate, samples }) instead.',
+			{type: 'DeprecationWarning', code: deprecationAsrFilePath},
+		);
+
+		const resolvedPath = path.resolve(input);
+		if (!fs.existsSync(resolvedPath)) {
+			throw new Error(`File not found: ${resolvedPath}`);
+		}
+
+		const ext = path.extname(resolvedPath).toLowerCase();
+
+		if (ext === '.wav') {
+			wavPath = resolvedPath;
+		} else {
+			wavPath = await convertToWav(resolvedPath);
+			needsCleanup = true;
+		}
+
+		wave = sherpaOnnx().readWave(wavPath);
 	} else {
-		wavPath = await convertToWav(resolvedPath);
-		needsCleanup = true;
+		wave = input;
 	}
 
 	try {
-		const onnx = sherpaOnnx();
 		const recognizer = createRecognizer(options.model, options.language);
 		const stream = recognizer.createStream();
-		const wave = onnx.readWave(wavPath);
 
 		stream.acceptWaveform({sampleRate: wave.sampleRate, samples: wave.samples});
 		recognizer.decode(stream);
@@ -158,7 +180,7 @@ export async function runAsr(
 			console.log(result.text.trim());
 		}
 	} finally {
-		if (needsCleanup && fs.existsSync(wavPath)) {
+		if (needsCleanup && wavPath && fs.existsSync(wavPath)) {
 			fs.unlinkSync(wavPath);
 		}
 	}

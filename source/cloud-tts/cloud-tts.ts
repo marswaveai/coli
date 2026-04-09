@@ -7,6 +7,7 @@ import {Writable} from 'node:stream';
 import {execa} from 'execa';
 import {ListenHubApi} from '../_api/listenhub-openapi.js';
 import type {SpeakerLanguage} from '../_api/types.js';
+import {deprecationDirectPlayback} from '../deprecations.js';
 
 export type CloudTtsOptions = {
 	apiKey: string;
@@ -66,6 +67,11 @@ export async function runCloudTts(
 		await stream.pipeTo(Writable.toWeb(fileStream));
 		return;
 	}
+
+	process.emitWarning(
+		'Direct audio playback is deprecated. Use -o <file> to save the audio file instead.',
+		{type: 'DeprecationWarning', code: deprecationDirectPlayback},
+	);
 
 	if (process.platform === 'win32') {
 		throw new Error(
