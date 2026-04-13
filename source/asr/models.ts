@@ -13,12 +13,12 @@ type ModelEntry = {dirName: string; url: string; checkFile: string};
 const models: Record<ModelName, ModelEntry> = {
 	whisper: {
 		dirName: 'sherpa-onnx-whisper-tiny.en',
-		url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2',
+		url: 'https://files.colaos.ai/coli/models/sherpa-onnx-whisper-tiny.en.tar.bz2',
 		checkFile: 'tiny.en-encoder.int8.onnx',
 	},
 	sensevoice: {
 		dirName: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17',
-		url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2',
+		url: 'https://files.colaos.ai/coli/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2',
 		checkFile: 'model.int8.onnx',
 	},
 };
@@ -96,8 +96,7 @@ export async function ensureModels(
 }
 
 const vadModelFile = 'silero_vad.onnx';
-const vadModelUrl =
-	'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx';
+const vadModelUrl = 'https://files.colaos.ai/coli/models/silero_vad.onnx';
 
 export function getVadModelPath(): string {
 	return path.join(modelsDirectory, vadModelFile);
