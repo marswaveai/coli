@@ -1,8 +1,8 @@
 # TTS (Text-to-Speech)
 
-Speak text or save to audio files using macOS built-in speech synthesis, powered by [mac-say](https://github.com/nickcoutsos/mac-say).
+Speak text or save to audio files using native text-to-speech, powered by [native-say](https://www.npmjs.com/package/native-say).
 
-> **Note:** Currently macOS only.
+> **Note:** Local TTS supports macOS and Windows.
 
 ## CLI
 
@@ -23,7 +23,7 @@ coli tts --list-voices
 **Options**
 
 ```
--v, --voice <name>    Voice to use, defaults to macOS system voice
+-v, --voice <name>    Voice to use, defaults to system voice
 -r, --rate <wpm>      Speech rate in words per minute
 -o, --output <file>   Save audio to file instead of speaking
 --list-voices         List available voices
@@ -56,9 +56,11 @@ await runTts('Hello world', {output: 'output.aiff'});
 | `rate`   | `number` | Speech rate in words per minute  |
 | `output` | `string` | Save to file instead of speaking |
 
+On Windows, `rate` uses the native SpeechSynthesizer range of `-10` to `10`, and output files are WAV.
+
 ### `getVoices()`
 
-Returns a list of available voices on the system. Each voice includes its name, language code, and an example phrase.
+Returns a list of available voices on the system. Voice metadata is platform-specific.
 
 ```js
 import {getVoices} from '@marswave/coli';
@@ -67,14 +69,26 @@ const voices = await getVoices();
 // => [
 //   { name: 'Alex', languageCode: 'en_US', example: 'Most people recognize me by my voice.' },
 //   { name: 'Samantha', languageCode: 'en_US', example: 'Hello, my name is Samantha.' },
+//   { name: 'Microsoft David Desktop', culture: 'en-US', gender: 'Male', age: 'Adult', description: 'Microsoft David Desktop - English (United States)', enabled: true },
 //   ...
 // ]
 ```
 
-**Voice properties**
+**macOS voice properties**
 
 | Property       | Type     | Description                   |
 | -------------- | -------- | ----------------------------- |
 | `name`         | `string` | Voice name                    |
 | `languageCode` | `string` | Language code (e.g. `en_US`)  |
 | `example`      | `string` | Example phrase for this voice |
+
+**Windows voice properties**
+
+| Property      | Type      | Description                  |
+| ------------- | --------- | ---------------------------- |
+| `name`        | `string`  | Voice name                   |
+| `culture`     | `string`  | Culture code (e.g. `en-US`)  |
+| `gender`      | `string`  | Voice gender metadata        |
+| `age`         | `string`  | Voice age metadata           |
+| `description` | `string`  | Voice description            |
+| `enabled`     | `boolean` | Whether the voice is enabled |

@@ -1,15 +1,21 @@
 import type {Command} from 'commander';
-import {getVoices, runTts} from './tts.js';
+import {type TtsVoice, getVoices, runTts} from './tts.js';
+
+function formatVoice(voice: TtsVoice): string {
+	if ('languageCode' in voice) {
+		return `${voice.name}\t${voice.languageCode}\t${voice.example}`;
+	}
+
+	const enabled = voice.enabled ? 'enabled' : 'disabled';
+	return `${voice.name}\t${voice.culture}\t${enabled}\t${voice.description}`;
+}
 
 export function register(program: Command) {
 	program
 		.command('tts')
-		.description('Speak text using text-to-speech (macOS only)')
+		.description('Speak text using native text-to-speech')
 		.argument('[text]', 'Text to speak')
-		.option(
-			'-v, --voice <name>',
-			'Voice to use, defaults to macOS system voice',
-		)
+		.option('-v, --voice <name>', 'Voice to use, defaults to system voice')
 		.option('-r, --rate <wpm>', 'Speech rate in words per minute', Number)
 		.option('-o, --output <file>', 'Save audio to file instead of speaking')
 		.option('--list-voices', 'List available voices')
@@ -31,9 +37,7 @@ export function register(program: Command) {
 						console.log(JSON.stringify(voices, null, 2));
 					} else {
 						for (const voice of voices) {
-							console.log(
-								`${voice.name}\t${voice.languageCode}\t${voice.example}`,
-							);
+							console.log(formatVoice(voice));
 						}
 					}
 

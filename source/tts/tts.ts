@@ -1,13 +1,15 @@
 import process from 'node:process';
-import {type Voice, getVoices as macGetVoices, say} from 'mac-say';
+import {type Voice, getVoices as nativeGetVoices, say} from 'native-say';
 
-function assertMacOs(): void {
-	if (process.platform !== 'darwin') {
+function assertSupportedPlatform(): void {
+	if (process.platform !== 'darwin' && process.platform !== 'win32') {
 		throw new Error(
-			'Local TTS is only supported on macOS. Use the cloud-tts command instead.',
+			'Local TTS is only supported on macOS and Windows. Use the cloud-tts command instead.',
 		);
 	}
 }
+
+export type TtsVoice = Voice;
 
 export type TtsOptions = {
 	voice?: string;
@@ -15,16 +17,16 @@ export type TtsOptions = {
 	output?: string;
 };
 
-export async function getVoices(): Promise<Voice[]> {
-	assertMacOs();
-	return macGetVoices();
+export async function getVoices(): Promise<TtsVoice[]> {
+	assertSupportedPlatform();
+	return nativeGetVoices();
 }
 
 export async function runTts(
 	text: string,
 	options: TtsOptions = {},
 ): Promise<void> {
-	assertMacOs();
+	assertSupportedPlatform();
 	await say(text, {
 		voice: options.voice,
 		rate: options.rate,

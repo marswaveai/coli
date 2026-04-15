@@ -1,1 +1,1 @@
-export {getVoices, runTts, type TtsOptions} from './tts.js';
+export {getVoices, runTts, type TtsOptions, type TtsVoice} from './tts.js';

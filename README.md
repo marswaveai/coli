@@ -14,7 +14,7 @@ Usage
 
 Commands
   asr         Transcribe an audio file using speech recognition
-  tts         Speak text using text-to-speech (macOS only)
+  tts         Speak text using native text-to-speech
   cloud-tts   Generate speech using ListenHub OpenAPI
 
 Examples
@@ -46,14 +46,14 @@ await streamAsr(audioSource, {
 	},
 });
 
-// TTS (macOS only)
+// TTS
 await runTts('Hello world', {voice: 'Samantha', rate: 200});
 ```
 
 ## Documentation
 
 - [ASR](docs/asr.md) — Automatic speech recognition
-- [TTS](docs/tts.md) — Text-to-speech synthesis (macOS only)
+- [TTS](docs/tts.md) — Native text-to-speech synthesis
 - [Cloud TTS](docs/cloud-tts.md) — Cloud-based TTS via ListenHub OpenAPI
 - [ListenHub OpenAPI](docs/listenhub-openapi.md) — ListenHub OpenAPI client
 - [Deprecations](docs/deprecations.md) — Deprecated APIs
