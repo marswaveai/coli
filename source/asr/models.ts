@@ -6,7 +6,11 @@ import {execa} from 'execa';
 
 const modelsDirectory = path.join(os.homedir(), '.coli', 'models');
 
-type ModelName = 'whisper' | 'sensevoice';
+export type ModelName =
+	| 'whisper'
+	| 'sensevoice'
+	| 'zipformer-zh-en'
+	| 'streaming-zipformer-zh-en';
 
 type ModelEntry = {dirName: string; url: string; checkFile: string};
 
@@ -21,11 +25,23 @@ const models: Record<ModelName, ModelEntry> = {
 		url: 'https://files.colaos.ai/coli/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2',
 		checkFile: 'model.int8.onnx',
 	},
+	'zipformer-zh-en': {
+		dirName: 'sherpa-onnx-zipformer-zh-en-2023-11-22',
+		url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-zipformer-zh-en-2023-11-22.tar.bz2',
+		checkFile: 'encoder-epoch-34-avg-19.int8.onnx',
+	},
+	'streaming-zipformer-zh-en': {
+		dirName: 'sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20',
+		url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2',
+		checkFile: 'encoder-epoch-99-avg-1.int8.onnx',
+	},
 };
 
 export const modelDisplayNames: Record<ModelName, string> = {
 	whisper: 'whisper-tiny.en',
 	sensevoice: 'sensevoice-small',
+	'zipformer-zh-en': 'zipformer-zh-en-2023-11-22',
+	'streaming-zipformer-zh-en': 'streaming-zipformer-bilingual-zh-en-2023-02-20',
 };
 
 export function getModelPath(model: ModelName): string {

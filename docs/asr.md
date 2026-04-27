@@ -17,17 +17,25 @@ coli asr -j recording.wav
 
 # Select model
 coli asr --model whisper recording.wav
+coli asr --model zipformer-zh-en recording.wav
 
 # Specify language (sensevoice only)
 coli asr --language zh recording.wav
+
+# Hotwords / custom vocabulary (zipformer-zh-en only)
+coli asr --model zipformer-zh-en --hotwords "Anthropic,Claude:2.5" recording.wav
+coli asr --model zipformer-zh-en --hotwords-file vocab.txt recording.wav
 ```
 
 **Options**
 
 ```
--j, --json     Output result in JSON format
---model        Model to use: whisper, sensevoice (default: sensevoice)
---language     Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
+-j, --json               Output result in JSON format
+--model                  Model to use: whisper, sensevoice, zipformer-zh-en (default: sensevoice)
+--language               Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
+--hotwords <words>       Comma-separated hotwords. Append :score for per-phrase score (e.g. "foo,bar:2.5")
+--hotwords-file <path>   Path to a sherpa-onnx hotwords file (mutually exclusive with --hotwords)
+--hotwords-score <num>   Default score applied when no per-phrase score is given (default: 1.5)
 ```
 
 ### `coli asr-stream`
@@ -46,15 +54,27 @@ ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream -
 
 # From a file
 ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
+
+# Zipformer zh-en with hotwords (offline decoding on each VAD segment)
+ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 \
+  | coli asr-stream --vad --model zipformer-zh-en --hotwords "Anthropic,Claude"
+
+# True streaming with endpoint detection (ignores --vad)
+ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 \
+  | coli asr-stream --model streaming-zipformer-zh-en --hotwords-file vocab.txt
 ```
 
 **Options**
 
 ```
--j, --json              Output each result as a JSON line
---vad                   Enable voice activity detection
---language <lang>       Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
---asr-interval-ms <ms>  Recognition interval in ms (default: 1000, ignored with --vad)
+-j, --json               Output each result as a JSON line
+--vad                    Enable voice activity detection (ignored with --model streaming-zipformer-zh-en)
+--model <name>           Model to use: sensevoice, zipformer-zh-en, streaming-zipformer-zh-en (default: sensevoice)
+--language <lang>        Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
+--asr-interval-ms <ms>   Recognition interval in ms (default: 1000, ignored with --vad or streaming model)
+--hotwords <words>       Comma-separated hotwords (zipformer-zh-en or streaming-zipformer-zh-en)
+--hotwords-file <path>   Path to a sherpa-onnx hotwords file
+--hotwords-score <num>   Default score applied when no per-phrase score is given (default: 1.5)
 ```
 
 **JSON output example**
@@ -72,6 +92,31 @@ ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
 }
 ```
 
+## Hotwords (custom vocabulary)
+
+Hotwords bias recognition toward specific phrases (product names, proper nouns, jargon). Because sherpa-onnx only applies hotword biasing when decoding with `modified_beam_search`, it is supported exclusively on the transducer models `zipformer-zh-en` (offline) and `streaming-zipformer-zh-en` (streaming). Using `--hotwords` with `--model sensevoice` or `--model whisper` produces a hard error pointing to the right model.
+
+**CLI (inline)**
+
+```sh
+coli asr --model zipformer-zh-en --hotwords "Anthropic,Claude:2.5,sherpa-onnx" recording.wav
+```
+
+Each entry may append `:score` to override the default score for that phrase. Commas separate entries.
+
+**CLI (file)**
+
+```sh
+printf 'Anthropic\nClaude :2.5\nsherpa-onnx\n' > vocab.txt
+coli asr --model zipformer-zh-en --hotwords-file vocab.txt recording.wav
+```
+
+Hotwords-file format: one phrase per line. Append ` :<score>` (with a leading space — the score is tokenized as a separate token) to set a per-phrase score. See the [sherpa-onnx hotwords docs](https://k2-fsa.github.io/sherpa/onnx/hotwords/index.html) for details.
+
+**Tokenization caveat.** sherpa-onnx matches hotwords at the token level. Zipformer zh-en uses byte-level BPE for English and characters for Chinese. Passing plain phrases yields coarse biasing; for the strongest effect, pre-tokenize using the model's tokenizer.
+
+**Score guidance.** Useful range is roughly `1.0`–`3.0`. Higher scores pull the decoder harder toward the phrase but can cause over-triggering (spurious insertions). The default is `1.5`.
+
 ## API
 
 ### `ensureModels(models?)`
@@ -83,6 +128,7 @@ import {ensureModels} from '@marswave/coli';
 
 await ensureModels(); // downloads sensevoice only
 await ensureModels(['whisper', 'sensevoice']); // downloads both
+await ensureModels(['zipformer-zh-en']); // downloads the hotwords-capable model
 ```
 
 ### `readWave(filename)`
@@ -115,17 +161,47 @@ await runAsr(
 	{json: false, model: 'sensevoice'},
 );
 
+// With hotwords (zipformer-zh-en only)
+await ensureModels(['zipformer-zh-en']);
+await runAsr(audio, {
+	json: false,
+	model: 'zipformer-zh-en',
+	hotwords: {
+		words: ['Anthropic', {phrase: 'Claude', score: 2.5}, 'sherpa-onnx'],
+	},
+});
+
+// Hotwords from a file
+await runAsr(audio, {
+	json: false,
+	model: 'zipformer-zh-en',
+	hotwords: {file: '/path/to/vocab.txt', score: 2},
+});
+
 // Deprecated: file path input (requires ffmpeg for non-WAV formats)
 await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
 ```
 
 **Options**
 
-| Property   | Type                        | Description                                                                                         |
-| ---------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `json`     | `boolean`                   | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text                       |
-| `model`    | `'whisper' \| 'sensevoice'` | Which model to use for recognition                                                                  |
-| `language` | `SenseVoiceLanguage`        | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
+| Property   | Type                                                                                      | Description                                                                                         |
+| ---------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `json`     | `boolean`                                                                                 | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text                       |
+| `model`    | `'whisper' \| 'sensevoice' \| 'zipformer-zh-en'`                                          | Which model to use for recognition                                                                  |
+| `language` | `SenseVoiceLanguage`                                                                      | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
+| `hotwords` | `AsrHotwords`                                                                             | Hotwords config (zipformer-zh-en only). See shape below                                             |
+
+**AsrHotwords**
+
+```ts
+type AsrHotwordEntry = string | {phrase: string; score?: number};
+
+type AsrHotwords =
+	| {words: AsrHotwordEntry[]; score?: number}
+	| {file: string; score?: number};
+```
+
+`score` on the top-level object is the default applied to entries with no per-phrase score (falls back to `1.5`).
 
 ### `getModelPath(model)`
 
@@ -139,6 +215,9 @@ getModelPath('sensevoice');
 
 getModelPath('whisper');
 // => '/Users/you/.coli/models/sherpa-onnx-whisper-tiny.en'
+
+getModelPath('zipformer-zh-en');
+// => '/Users/you/.coli/models/sherpa-onnx-zipformer-zh-en-2023-11-22'
 ```
 
 ### `modelDisplayNames`
@@ -150,15 +229,18 @@ import {modelDisplayNames} from '@marswave/coli';
 
 modelDisplayNames.sensevoice; // => 'sensevoice-small'
 modelDisplayNames.whisper; // => 'whisper-tiny.en'
+modelDisplayNames['zipformer-zh-en']; // => 'zipformer-zh-en-2023-11-22'
 ```
 
 ## Streaming API
 
-For streaming speech recognition, use the streaming API. It accepts audio as an async iterable of `Float32Array` chunks (16 kHz mono PCM) and delivers recognition results via the `onResult` callback as audio accumulates, using the SenseVoice model.
+For streaming speech recognition, use the streaming API. It accepts audio as an async iterable of `Float32Array` chunks (16 kHz mono PCM) and delivers recognition results via the `onResult` callback.
+
+By default it uses the SenseVoice model with interval-based or VAD-based decoding. Pass `model: 'zipformer-zh-en'` to use the transducer model with the same VAD/interval approach, or `model: 'streaming-zipformer-zh-en'` for true low-latency streaming with built-in endpoint detection (which ignores the `vad` option).
 
 ### `streamAsr(audio, options)`
 
-Stream audio in and receive recognition results incrementally. Call `ensureModels()` first. If using VAD, also call `ensureVadModel()`.
+Stream audio in and receive recognition results incrementally. Call `ensureModels()` first with the model you plan to use. If using VAD, also call `ensureVadModel()`.
 
 ```js
 import {ensureModels, ensureVadModel, streamAsr} from '@marswave/coli';
@@ -190,17 +272,41 @@ await streamAsr(audioSource, {
 		console.log(result.text);
 	},
 });
+
+// Zipformer zh-en with hotwords (VAD-based)
+await ensureModels(['zipformer-zh-en']);
+await ensureVadModel();
+await streamAsr(audioSource, {
+	model: 'zipformer-zh-en',
+	vad: true,
+	hotwords: {words: ['Anthropic', 'Claude']},
+	onResult(result) {
+		console.log(result.text);
+	},
+});
+
+// True streaming with built-in endpoint detection
+await ensureModels(['streaming-zipformer-zh-en']);
+await streamAsr(audioSource, {
+	model: 'streaming-zipformer-zh-en',
+	hotwords: {file: '/path/to/vocab.txt'},
+	onResult(result) {
+		console.log(result.text, result.isFinal ? '(final)' : '(partial)');
+	},
+});
 ```
 
 **Options**
 
-| Property        | Type                                | Description                                                                                         |
-| --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result                                                       |
-| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)                                                          |
-| `language`      | `SenseVoiceLanguage`                | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
-| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD                      |
-| `vad`           | `boolean \| VadOptions`             | Enable VAD. Pass `true` for defaults or a `VadOptions` object                                       |
+| Property        | Type                                                                             | Description                                                                                          |
+| --------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `onResult`      | `(result: AsrStreamResult) => void`                                              | Callback invoked with each recognition result                                                        |
+| `sampleRate`    | `number`                                                                         | Audio sample rate in Hz (default: `16000`)                                                           |
+| `model`         | `'sensevoice' \| 'zipformer-zh-en' \| 'streaming-zipformer-zh-en'`               | Recognition model (default: `'sensevoice'`)                                                          |
+| `language`      | `SenseVoiceLanguage`                                                             | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`)  |
+| `asrIntervalMs` | `number`                                                                         | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD or streaming model    |
+| `vad`           | `boolean \| VadOptions`                                                          | Enable VAD. Pass `true` for defaults or a `VadOptions` object. Ignored with `streaming-zipformer-zh-en` |
+| `hotwords`      | `AsrHotwords`                                                                    | Hotwords config (zipformer-zh-en or streaming-zipformer-zh-en only)                                  |
 
 **VadOptions**
 
@@ -230,10 +336,14 @@ On first run, coli automatically downloads required models to `~/.coli/models/`:
 
 **ASR Models**
 
-| Name                   | Model                                                              | Languages                                     |
-| ---------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
-| `sensevoice` (default) | [SenseVoice Small](https://github.com/FunAudioLLM/SenseVoice) int8 | Chinese, English, Japanese, Korean, Cantonese |
-| `whisper`              | [Whisper tiny.en](https://github.com/openai/whisper) int8          | English                                       |
+| Name                                  | Model                                                                                      | Languages                                     | Hotwords |
+| ------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------- | -------- |
+| `sensevoice` (default)                | [SenseVoice Small](https://github.com/FunAudioLLM/SenseVoice) int8                         | Chinese, English, Japanese, Korean, Cantonese | No       |
+| `whisper`                             | [Whisper tiny.en](https://github.com/openai/whisper) int8                                  | English                                       | No       |
+| `zipformer-zh-en`                     | [Zipformer transducer zh-en 2023-11-22](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models)        | Chinese, English                              | Yes      |
+| `streaming-zipformer-zh-en`           | [Streaming Zipformer bilingual zh-en 2023-02-20](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models) | Chinese, English                              | Yes      |
+
+The `zipformer-zh-en` and `streaming-zipformer-zh-en` tarballs are pulled directly from the upstream k2-fsa releases; the other models come from coli's mirror.
 
 **VAD Model**
 
@@ -241,7 +351,7 @@ On first run, coli automatically downloads required models to `~/.coli/models/`:
 | ------------ | -------------------------------------------------------------------- | ------- |
 | `silero_vad` | [Silero VAD](https://github.com/snakers4/silero-vad) (k2-fsa export) | ~629 KB |
 
-`streamAsr` uses the SenseVoice model for recognition. VAD uses Silero VAD and is downloaded separately via `ensureVadModel()`.
+`streamAsr` uses SenseVoice by default. VAD uses Silero VAD and is downloaded separately via `ensureVadModel()`.
 
 ## Supported audio formats
 

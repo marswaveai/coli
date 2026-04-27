@@ -1,6 +1,12 @@
 import {createRequire} from 'node:module';
 import path from 'node:path';
-import type {SenseVoiceLanguage} from './asr.js';
+import {
+	type AsrHotwords,
+	type PreparedHotwords,
+	type SenseVoiceLanguage,
+	assertHotwordsSupported,
+	prepareHotwordsFile,
+} from './asr.js';
 import {getModelPath, getVadModelPath} from './models.js';
 
 const require = createRequire(import.meta.url);
@@ -22,6 +28,26 @@ type OfflineRecognizer = {
 	getResult(stream: unknown): RecognitionResult;
 };
 
+type OnlineRecognizerResult = {
+	text: string;
+	tokens: string[];
+	timestamps: number[];
+};
+
+type OnlineStream = {
+	acceptWaveform(wave: {sampleRate: number; samples: Float32Array}): void;
+	inputFinished(): void;
+};
+
+type OnlineRecognizer = {
+	createStream(): OnlineStream;
+	isReady(stream: OnlineStream): boolean;
+	decode(stream: OnlineStream): void;
+	isEndpoint(stream: OnlineStream): boolean;
+	reset(stream: OnlineStream): void;
+	getResult(stream: OnlineStream): OnlineRecognizerResult;
+};
+
 type SpeechSegment = {
 	start: number;
 	samples: Float32Array;
@@ -39,6 +65,7 @@ type VadInstance = {
 
 type SherpaOnnx = {
 	OfflineRecognizer: new (config: Record<string, unknown>) => OfflineRecognizer;
+	OnlineRecognizer: new (config: Record<string, unknown>) => OnlineRecognizer;
 	Vad: new (
 		config: Record<string, unknown>,
 		bufferSizeInSeconds: number,
@@ -55,9 +82,43 @@ function sherpaOnnx(): SherpaOnnx {
 const defaultSampleRate = 16_000;
 const defaultAsrIntervalMs = 1000;
 
-function createRecognizer(language?: SenseVoiceLanguage): OfflineRecognizer {
-	const modelDir = getModelPath('sensevoice');
+export type StreamModelName =
+	| 'sensevoice'
+	| 'zipformer-zh-en'
+	| 'streaming-zipformer-zh-en';
+
+function createOfflineRecognizer(
+	model: StreamModelName,
+	language?: SenseVoiceLanguage,
+	hotwords?: {file: string; score: number},
+): OfflineRecognizer {
+	const modelDir = getModelPath(model);
 	const onnx = sherpaOnnx();
+
+	if (model === 'zipformer-zh-en') {
+		const config: Record<string, unknown> = {
+			featConfig: {sampleRate: defaultSampleRate, featureDim: 80},
+			modelConfig: {
+				transducer: {
+					encoder: path.join(modelDir, 'encoder-epoch-34-avg-19.int8.onnx'),
+					decoder: path.join(modelDir, 'decoder-epoch-34-avg-19.onnx'),
+					joiner: path.join(modelDir, 'joiner-epoch-34-avg-19.int8.onnx'),
+				},
+				tokens: path.join(modelDir, 'tokens.txt'),
+				numThreads: 2,
+				provider: 'cpu',
+				debug: 0,
+			},
+		};
+
+		if (hotwords) {
+			config['hotwordsFile'] = hotwords.file;
+			config['hotwordsScore'] = hotwords.score;
+			config['decodingMethod'] = 'modified_beam_search';
+		}
+
+		return new onnx.OfflineRecognizer(config);
+	}
 
 	return new onnx.OfflineRecognizer({
 		featConfig: {sampleRate: defaultSampleRate, featureDim: 80},
@@ -73,6 +134,41 @@ function createRecognizer(language?: SenseVoiceLanguage): OfflineRecognizer {
 			debug: 0,
 		},
 	});
+}
+
+function createOnlineRecognizer(hotwords?: {
+	file: string;
+	score: number;
+}): OnlineRecognizer {
+	const modelDir = getModelPath('streaming-zipformer-zh-en');
+	const onnx = sherpaOnnx();
+
+	const config: Record<string, unknown> = {
+		featConfig: {sampleRate: defaultSampleRate, featureDim: 80},
+		modelConfig: {
+			transducer: {
+				encoder: path.join(modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
+				decoder: path.join(modelDir, 'decoder-epoch-99-avg-1.onnx'),
+				joiner: path.join(modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
+			},
+			tokens: path.join(modelDir, 'tokens.txt'),
+			numThreads: 2,
+			provider: 'cpu',
+			debug: 0,
+		},
+		enableEndpoint: true,
+		rule1MinTrailingSilence: 2.4,
+		rule2MinTrailingSilence: 1.2,
+		rule3MinUtteranceLength: 20,
+	};
+
+	if (hotwords) {
+		config['hotwordsFile'] = hotwords.file;
+		config['hotwordsScore'] = hotwords.score;
+		config['decodingMethod'] = 'modified_beam_search';
+	}
+
+	return new onnx.OnlineRecognizer(config);
 }
 
 function recognize(recognizer: OfflineRecognizer, samples: Float32Array) {
@@ -121,8 +217,10 @@ export type VadOptions = {
 export type StreamAsrOptions = {
 	sampleRate?: number;
 	asrIntervalMs?: number;
+	model?: StreamModelName;
 	language?: SenseVoiceLanguage;
 	vad?: boolean | VadOptions;
+	hotwords?: AsrHotwords;
 	onResult: (result: AsrStreamResult) => void;
 };
 
@@ -146,7 +244,7 @@ function createVad(vadOptions: VadOptions): VadInstance {
 	);
 }
 
-function emitResult(
+function emitOfflineResult(
 	result: RecognitionResult,
 	isFinal: boolean,
 	onResult: StreamAsrOptions['onResult'],
@@ -157,12 +255,36 @@ function emitResult(
 	}
 }
 
+function emitOnlineResult(
+	result: OnlineRecognizerResult,
+	isFinal: boolean,
+	onResult: StreamAsrOptions['onResult'],
+) {
+	const text = result.text.trim();
+	if (text) {
+		onResult({
+			text,
+			lang: '',
+			emotion: '',
+			event: '',
+			tokens: result.tokens,
+			timestamps: result.timestamps,
+			isFinal,
+		});
+	}
+}
+
 async function streamWithVad(
 	audio: AsyncIterable<Float32Array>,
 	options: StreamAsrOptions,
 	vadOptions: VadOptions,
+	hotwords: PreparedHotwords | undefined,
 ): Promise<void> {
-	const recognizer = createRecognizer(options.language);
+	const recognizer = createOfflineRecognizer(
+		options.model ?? 'sensevoice',
+		options.language,
+		hotwords && {file: hotwords.file, score: hotwords.score},
+	);
 	const vad = createVad(vadOptions);
 	const {windowSize} = vad.config.sileroVad;
 
@@ -172,7 +294,7 @@ async function streamWithVad(
 		while (!vad.isEmpty()) {
 			const segment = vad.front(vadOptions.enableExternalBuffer);
 			vad.pop();
-			emitResult(
+			emitOfflineResult(
 				recognize(recognizer, segment.samples),
 				true,
 				options.onResult,
@@ -206,11 +328,16 @@ async function streamWithVad(
 async function streamWithInterval(
 	audio: AsyncIterable<Float32Array>,
 	options: StreamAsrOptions,
+	hotwords: PreparedHotwords | undefined,
 ): Promise<void> {
 	const inputSampleRate = options.sampleRate ?? defaultSampleRate;
 	const intervalMs = options.asrIntervalMs ?? defaultAsrIntervalMs;
 	const chunkInterval = (defaultSampleRate * intervalMs) / 1000;
-	const recognizer = createRecognizer(options.language);
+	const recognizer = createOfflineRecognizer(
+		options.model ?? 'sensevoice',
+		options.language,
+		hotwords && {file: hotwords.file, score: hotwords.score},
+	);
 
 	const buffers: Float32Array[] = [];
 	let totalSamples = 0;
@@ -237,18 +364,84 @@ async function streamWithInterval(
 
 	const merged = mergeBuffers(buffers, totalSamples);
 	if (merged.length > 0) {
-		emitResult(recognize(recognizer, merged), true, options.onResult);
+		emitOfflineResult(recognize(recognizer, merged), true, options.onResult);
 	}
+}
+
+async function streamWithOnline(
+	audio: AsyncIterable<Float32Array>,
+	options: StreamAsrOptions,
+	hotwords: PreparedHotwords | undefined,
+): Promise<void> {
+	const recognizer = createOnlineRecognizer(
+		hotwords && {file: hotwords.file, score: hotwords.score},
+	);
+	const stream = recognizer.createStream();
+	let lastText = '';
+
+	function drain(isFinalFlush: boolean) {
+		while (recognizer.isReady(stream)) {
+			recognizer.decode(stream);
+		}
+
+		const result = recognizer.getResult(stream);
+		const text = result.text.trim();
+		const endpointReached = recognizer.isEndpoint(stream);
+
+		if (endpointReached) {
+			if (text) {
+				emitOnlineResult(result, true, options.onResult);
+			}
+
+			recognizer.reset(stream);
+			lastText = '';
+			return;
+		}
+
+		if (text && text !== lastText) {
+			lastText = text;
+			emitOnlineResult(result, isFinalFlush, options.onResult);
+		} else if (isFinalFlush && text) {
+			emitOnlineResult(result, true, options.onResult);
+		}
+	}
+
+	for await (const chunk of audio) {
+		stream.acceptWaveform({sampleRate: defaultSampleRate, samples: chunk});
+		drain(false);
+	}
+
+	const tailPadding = new Float32Array(Math.floor(defaultSampleRate * 0.4));
+	stream.acceptWaveform({sampleRate: defaultSampleRate, samples: tailPadding});
+	stream.inputFinished();
+	drain(true);
 }
 
 export async function streamAsr(
 	audio: AsyncIterable<Float32Array>,
 	options: StreamAsrOptions,
 ): Promise<void> {
-	if (options.vad) {
-		const vadOptions = typeof options.vad === 'object' ? options.vad : {};
-		return streamWithVad(audio, options, vadOptions);
-	}
+	const model = options.model ?? 'sensevoice';
+	assertHotwordsSupported(model, options.hotwords);
 
-	return streamWithInterval(audio, options);
+	const hotwords = options.hotwords
+		? prepareHotwordsFile(options.hotwords)
+		: undefined;
+
+	try {
+		if (model === 'streaming-zipformer-zh-en') {
+			await streamWithOnline(audio, options, hotwords);
+			return;
+		}
+
+		if (options.vad) {
+			const vadOptions = typeof options.vad === 'object' ? options.vad : {};
+			await streamWithVad(audio, options, vadOptions, hotwords);
+			return;
+		}
+
+		await streamWithInterval(audio, options, hotwords);
+	} finally {
+		hotwords?.cleanup?.();
+	}
 }

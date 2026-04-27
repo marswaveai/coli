@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {execa} from 'execa';
 import {deprecationAsrFilePath} from '../deprecations.js';
-import {getModelPath, modelDisplayNames} from './models.js';
+import {type ModelName, getModelPath, modelDisplayNames} from './models.js';
 
 const require = createRequire(import.meta.url);
 
@@ -67,11 +67,85 @@ export async function convertToWav(inputPath: string): Promise<string> {
 	return outputPath;
 }
 
-type ModelName = 'whisper' | 'sensevoice';
-
 export type SenseVoiceLanguage = 'auto' | 'zh' | 'en' | 'ja' | 'ko' | 'yue';
 
-function createRecognizer(model: ModelName, language?: SenseVoiceLanguage) {
+export type AsrHotwordEntry = string | {phrase: string; score?: number};
+
+export type AsrHotwords =
+	| {words: AsrHotwordEntry[]; score?: number}
+	| {file: string; score?: number};
+
+export const defaultHotwordsScore = 1.5;
+
+export function formatHotwordLine(entry: AsrHotwordEntry): string {
+	if (typeof entry === 'string') {
+		return entry;
+	}
+
+	if (entry.score === undefined) {
+		return entry.phrase;
+	}
+
+	return `${entry.phrase} :${entry.score}`;
+}
+
+export type PreparedHotwords = {
+	file: string;
+	score: number;
+	cleanup?: () => void;
+};
+
+export function prepareHotwordsFile(hotwords: AsrHotwords): PreparedHotwords {
+	const score = hotwords.score ?? defaultHotwordsScore;
+
+	if ('file' in hotwords) {
+		const resolved = path.resolve(hotwords.file);
+		if (!fs.existsSync(resolved)) {
+			throw new Error(`Hotwords file not found: ${resolved}`);
+		}
+
+		return {file: resolved, score};
+	}
+
+	const temporaryPath = path.join(
+		os.tmpdir(),
+		`coli-hotwords-${process.pid}-${Date.now()}.txt`,
+	);
+	const content =
+		hotwords.words.map((w) => formatHotwordLine(w)).join('\n') + '\n';
+	fs.writeFileSync(temporaryPath, content);
+
+	return {
+		file: temporaryPath,
+		score,
+		cleanup() {
+			if (fs.existsSync(temporaryPath)) {
+				fs.unlinkSync(temporaryPath);
+			}
+		},
+	};
+}
+
+export function assertHotwordsSupported(
+	model: ModelName,
+	hotwords: AsrHotwords | undefined,
+): void {
+	if (!hotwords) {
+		return;
+	}
+
+	if (model === 'whisper' || model === 'sensevoice') {
+		throw new Error(
+			`Hotwords are not supported for model "${model}" (only greedy_search decoding is available). Use --model zipformer-zh-en.`,
+		);
+	}
+}
+
+function createRecognizer(
+	model: ModelName,
+	language?: SenseVoiceLanguage,
+	hotwords?: {file: string; score: number},
+) {
 	const modelDir = getModelPath(model);
 	const onnx = sherpaOnnx();
 
@@ -89,6 +163,37 @@ function createRecognizer(model: ModelName, language?: SenseVoiceLanguage) {
 				debug: 0,
 			},
 		});
+	}
+
+	if (model === 'zipformer-zh-en') {
+		const config: Record<string, unknown> = {
+			featConfig: {sampleRate: 16_000, featureDim: 80},
+			modelConfig: {
+				transducer: {
+					encoder: path.join(modelDir, 'encoder-epoch-34-avg-19.int8.onnx'),
+					decoder: path.join(modelDir, 'decoder-epoch-34-avg-19.onnx'),
+					joiner: path.join(modelDir, 'joiner-epoch-34-avg-19.int8.onnx'),
+				},
+				tokens: path.join(modelDir, 'tokens.txt'),
+				numThreads: 2,
+				provider: 'cpu',
+				debug: 0,
+			},
+		};
+
+		if (hotwords) {
+			config['hotwordsFile'] = hotwords.file;
+			config['hotwordsScore'] = hotwords.score;
+			config['decodingMethod'] = 'modified_beam_search';
+		}
+
+		return new onnx.OfflineRecognizer(config);
+	}
+
+	if (model === 'streaming-zipformer-zh-en') {
+		throw new Error(
+			'Model "streaming-zipformer-zh-en" is only available for streaming recognition (coli asr-stream).',
+		);
 	}
 
 	return new onnx.OfflineRecognizer({
@@ -111,6 +216,7 @@ export type AsrOptions = {
 	json: boolean;
 	model: ModelName;
 	language?: SenseVoiceLanguage;
+	hotwords?: AsrHotwords;
 };
 
 export type AudioData = {
@@ -122,6 +228,8 @@ export async function runAsr(
 	input: string | AudioData,
 	options: AsrOptions,
 ): Promise<void> {
+	assertHotwordsSupported(options.model, options.hotwords);
+
 	let wave: {sampleRate: number; samples: Float32Array};
 	let needsCleanup = false;
 	let wavPath: string | undefined;
@@ -151,8 +259,16 @@ export async function runAsr(
 		wave = input;
 	}
 
+	const hotwords = options.hotwords
+		? prepareHotwordsFile(options.hotwords)
+		: undefined;
+
 	try {
-		const recognizer = createRecognizer(options.model, options.language);
+		const recognizer = createRecognizer(
+			options.model,
+			options.language,
+			hotwords && {file: hotwords.file, score: hotwords.score},
+		);
 		const stream = recognizer.createStream();
 
 		stream.acceptWaveform({sampleRate: wave.sampleRate, samples: wave.samples});
@@ -180,6 +296,7 @@ export async function runAsr(
 			console.log(result.text.trim());
 		}
 	} finally {
+		hotwords?.cleanup?.();
 		if (needsCleanup && wavPath && fs.existsSync(wavPath)) {
 			fs.unlinkSync(wavPath);
 		}
