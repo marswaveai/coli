@@ -9,7 +9,12 @@ import {
 	readWave,
 	runAsr,
 } from './asr.js';
-import {ensureModels, ensureVadModel} from './models.js';
+import {
+	ensureModels,
+	ensureVadModel,
+	resolveAsrModelFiles,
+	resolveVadModelFile,
+} from './models.js';
 import {streamAsr} from './stream-asr.js';
 
 export function register(program: Command) {
@@ -19,6 +24,7 @@ export function register(program: Command) {
 		.argument('<file>', 'Audio file to transcribe')
 		.option('-j, --json', 'Output result in JSON format', false)
 		.option('--model <name>', 'Model to use: whisper, sensevoice', 'sensevoice')
+		.option('--model-path <path>', 'Path to a local model file or directory')
 		.option(
 			'--language <lang>',
 			'Language for sensevoice: auto, zh, en, ja, ko, yue',
@@ -27,7 +33,12 @@ export function register(program: Command) {
 		.action(
 			async (
 				file: string,
-				options: {json: boolean; model: string; language: string},
+				options: {
+					json: boolean;
+					model: string;
+					modelPath?: string;
+					language: string;
+				},
 			) => {
 				const {model} = options;
 				if (model !== 'whisper' && model !== 'sensevoice') {
@@ -43,7 +54,12 @@ export function register(program: Command) {
 					);
 				}
 
-				await ensureModels([model]);
+				if (options.modelPath) {
+					resolveAsrModelFiles(model, options.modelPath);
+				} else {
+					await ensureModels([model]);
+				}
+
 				const resolvedPath = path.resolve(file);
 				const ext = path.extname(resolvedPath).toLowerCase();
 
@@ -61,6 +77,7 @@ export function register(program: Command) {
 					await runAsr(input, {
 						json: options.json,
 						model,
+						modelPath: options.modelPath,
 						// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 						language: options.language as SenseVoiceLanguage,
 					});
@@ -80,6 +97,11 @@ export function register(program: Command) {
 		.option('-j, --json', 'Output each result as a JSON line', false)
 		.option('--vad', 'Enable voice activity detection', false)
 		.option(
+			'--model-path <path>',
+			'Path to a local SenseVoice model file or directory',
+		)
+		.option('--vad-model-path <path>', 'Path to a local VAD model file')
+		.option(
 			'--language <lang>',
 			'Language for sensevoice: auto, zh, en, ja, ko, yue',
 			'auto',
@@ -93,6 +115,8 @@ export function register(program: Command) {
 			async (options: {
 				json: boolean;
 				vad: boolean;
+				modelPath?: string;
+				vadModelPath?: string;
 				language: string;
 				asrIntervalMs: string;
 			}) => {
@@ -103,8 +127,19 @@ export function register(program: Command) {
 					);
 				}
 
-				await ensureModels();
-				if (options.vad) {
+				if (options.modelPath) {
+					resolveAsrModelFiles('sensevoice', options.modelPath);
+				} else {
+					await ensureModels();
+				}
+
+				if (options.vadModelPath) {
+					if (options.vad) {
+						resolveVadModelFile(options.vadModelPath);
+					} else {
+						throw new Error('Use --vad with --vad-model-path.');
+					}
+				} else if (options.vad) {
 					await ensureVadModel();
 				}
 
@@ -129,7 +164,8 @@ export function register(program: Command) {
 				await streamAsr(stdinAudio(), {
 					// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 					language: options.language as SenseVoiceLanguage,
-					vad: options.vad || undefined,
+					modelPath: options.modelPath,
+					vad: options.vad ? {modelPath: options.vadModelPath} : undefined,
 					asrIntervalMs: Number(options.asrIntervalMs),
 					onResult(result) {
 						if (options.json) {

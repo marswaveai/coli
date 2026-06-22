@@ -1,7 +1,10 @@
 import {createRequire} from 'node:module';
-import path from 'node:path';
 import type {SenseVoiceLanguage} from './asr.js';
-import {getModelPath, getVadModelPath} from './models.js';
+import {
+	type SenseVoiceModelFiles,
+	resolveAsrModelFiles,
+	resolveVadModelFile,
+} from './models.js';
 
 const require = createRequire(import.meta.url);
 
@@ -55,19 +58,21 @@ function sherpaOnnx(): SherpaOnnx {
 const defaultSampleRate = 16_000;
 const defaultAsrIntervalMs = 1000;
 
-function createRecognizer(language?: SenseVoiceLanguage): OfflineRecognizer {
-	const modelDir = getModelPath('sensevoice');
+function createRecognizer(
+	modelFiles: SenseVoiceModelFiles,
+	language?: SenseVoiceLanguage,
+): OfflineRecognizer {
 	const onnx = sherpaOnnx();
 
 	return new onnx.OfflineRecognizer({
 		featConfig: {sampleRate: defaultSampleRate, featureDim: 80},
 		modelConfig: {
 			senseVoice: {
-				model: path.join(modelDir, 'model.int8.onnx'),
+				model: modelFiles.model,
 				useInverseTextNormalization: 1,
 				language: language ?? 'auto',
 			},
-			tokens: path.join(modelDir, 'tokens.txt'),
+			tokens: modelFiles.tokens,
 			numThreads: 2,
 			provider: 'cpu',
 			debug: 0,
@@ -111,6 +116,7 @@ export type AsrStreamResult = {
 };
 
 export type VadOptions = {
+	modelPath?: string | undefined;
 	threshold?: number;
 	minSpeechDuration?: number;
 	minSilenceDuration?: number;
@@ -122,16 +128,19 @@ export type StreamAsrOptions = {
 	sampleRate?: number;
 	asrIntervalMs?: number;
 	language?: SenseVoiceLanguage;
+	modelPath?: string | undefined;
 	vad?: boolean | VadOptions;
 	onResult: (result: AsrStreamResult) => void;
 };
 
 function createVad(vadOptions: VadOptions): VadInstance {
 	const onnx = sherpaOnnx();
+	const modelPath = resolveVadModelFile(vadOptions.modelPath);
+
 	return new onnx.Vad(
 		{
 			sileroVad: {
-				model: getVadModelPath(),
+				model: modelPath,
 				threshold: vadOptions.threshold ?? 0.5,
 				minSpeechDuration: vadOptions.minSpeechDuration ?? 0.25,
 				minSilenceDuration: vadOptions.minSilenceDuration ?? 0.5,
@@ -162,7 +171,8 @@ async function streamWithVad(
 	options: StreamAsrOptions,
 	vadOptions: VadOptions,
 ): Promise<void> {
-	const recognizer = createRecognizer(options.language);
+	const modelFiles = resolveAsrModelFiles('sensevoice', options.modelPath);
+	const recognizer = createRecognizer(modelFiles.files, options.language);
 	const vad = createVad(vadOptions);
 	const {windowSize} = vad.config.sileroVad;
 
@@ -210,7 +220,8 @@ async function streamWithInterval(
 	const inputSampleRate = options.sampleRate ?? defaultSampleRate;
 	const intervalMs = options.asrIntervalMs ?? defaultAsrIntervalMs;
 	const chunkInterval = (defaultSampleRate * intervalMs) / 1000;
-	const recognizer = createRecognizer(options.language);
+	const modelFiles = resolveAsrModelFiles('sensevoice', options.modelPath);
+	const recognizer = createRecognizer(modelFiles.files, options.language);
 
 	const buffers: Float32Array[] = [];
 	let totalSamples = 0;

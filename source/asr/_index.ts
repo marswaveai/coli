@@ -4,6 +4,7 @@ export {
 	getModelPath,
 	getVadModelPath,
 	modelDisplayNames,
+	type ModelName,
 } from './models.js';
 export {
 	convertToWav,

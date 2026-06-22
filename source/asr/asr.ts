@@ -5,7 +5,12 @@ import path from 'node:path';
 import process from 'node:process';
 import {execa} from 'execa';
 import {deprecationAsrFilePath} from '../deprecations.js';
-import {getModelPath, modelDisplayNames} from './models.js';
+import {
+	type AsrModelFiles,
+	type ModelName,
+	modelDisplayNames,
+	resolveAsrModelFiles,
+} from './models.js';
 
 const require = createRequire(import.meta.url);
 
@@ -67,23 +72,23 @@ export async function convertToWav(inputPath: string): Promise<string> {
 	return outputPath;
 }
 
-type ModelName = 'whisper' | 'sensevoice';
-
 export type SenseVoiceLanguage = 'auto' | 'zh' | 'en' | 'ja' | 'ko' | 'yue';
 
-function createRecognizer(model: ModelName, language?: SenseVoiceLanguage) {
-	const modelDir = getModelPath(model);
+function createRecognizer(
+	modelFiles: AsrModelFiles,
+	language?: SenseVoiceLanguage,
+) {
 	const onnx = sherpaOnnx();
 
-	if (model === 'whisper') {
+	if (modelFiles.model === 'whisper') {
 		return new onnx.OfflineRecognizer({
 			featConfig: {sampleRate: 16_000, featureDim: 80},
 			modelConfig: {
 				whisper: {
-					encoder: path.join(modelDir, 'tiny.en-encoder.int8.onnx'),
-					decoder: path.join(modelDir, 'tiny.en-decoder.int8.onnx'),
+					encoder: modelFiles.files.encoder,
+					decoder: modelFiles.files.decoder,
 				},
-				tokens: path.join(modelDir, 'tiny.en-tokens.txt'),
+				tokens: modelFiles.files.tokens,
 				numThreads: 2,
 				provider: 'cpu',
 				debug: 0,
@@ -95,11 +100,11 @@ function createRecognizer(model: ModelName, language?: SenseVoiceLanguage) {
 		featConfig: {sampleRate: 16_000, featureDim: 80},
 		modelConfig: {
 			senseVoice: {
-				model: path.join(modelDir, 'model.int8.onnx'),
+				model: modelFiles.files.model,
 				useInverseTextNormalization: 1,
 				language: language ?? 'auto',
 			},
-			tokens: path.join(modelDir, 'tokens.txt'),
+			tokens: modelFiles.files.tokens,
 			numThreads: 2,
 			provider: 'cpu',
 			debug: 0,
@@ -110,6 +115,7 @@ function createRecognizer(model: ModelName, language?: SenseVoiceLanguage) {
 export type AsrOptions = {
 	json: boolean;
 	model: ModelName;
+	modelPath?: string | undefined;
 	language?: SenseVoiceLanguage;
 };
 
@@ -122,6 +128,7 @@ export async function runAsr(
 	input: string | AudioData,
 	options: AsrOptions,
 ): Promise<void> {
+	const modelFiles = resolveAsrModelFiles(options.model, options.modelPath);
 	let wave: {sampleRate: number; samples: Float32Array};
 	let needsCleanup = false;
 	let wavPath: string | undefined;
@@ -152,7 +159,7 @@ export async function runAsr(
 	}
 
 	try {
-		const recognizer = createRecognizer(options.model, options.language);
+		const recognizer = createRecognizer(modelFiles, options.language);
 		const stream = recognizer.createStream();
 
 		stream.acceptWaveform({sampleRate: wave.sampleRate, samples: wave.samples});

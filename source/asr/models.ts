@@ -10,9 +10,24 @@ import ky from 'ky';
 
 const modelsDirectory = path.join(os.homedir(), '.coli', 'models');
 
-type ModelName = 'whisper' | 'sensevoice';
+export type ModelName = 'whisper' | 'sensevoice';
 
 type ModelFile = {fileName: string; sha256: string};
+
+export type WhisperModelFiles = {
+	encoder: string;
+	decoder: string;
+	tokens: string;
+};
+
+export type SenseVoiceModelFiles = {
+	model: string;
+	tokens: string;
+};
+
+export type AsrModelFiles =
+	| {model: 'whisper'; files: WhisperModelFiles}
+	| {model: 'sensevoice'; files: SenseVoiceModelFiles};
 
 type ModelEntry = {
 	dirName: string;
@@ -80,6 +95,93 @@ export const modelDisplayNames: Record<ModelName, string> = {
 
 export function getModelPath(model: ModelName): string {
 	return path.join(modelsDirectory, models[model].dirName);
+}
+
+function assertExistingFile(filePath: string, label: string): void {
+	if (!fs.existsSync(filePath)) {
+		throw new Error(`${label} not found: ${filePath}`);
+	}
+
+	if (!fs.statSync(filePath).isFile()) {
+		throw new Error(`${label} must be a file: ${filePath}`);
+	}
+}
+
+function resolveModelDirectory(
+	modelPath: string | undefined,
+	defaultDirectory: string,
+): {directory: string; filePath?: string} {
+	if (!modelPath) {
+		return {directory: defaultDirectory};
+	}
+
+	const resolvedPath = path.resolve(modelPath);
+	if (!fs.existsSync(resolvedPath)) {
+		throw new Error(`Model path not found: ${resolvedPath}`);
+	}
+
+	const stat = fs.statSync(resolvedPath);
+	if (stat.isDirectory()) {
+		return {directory: resolvedPath};
+	}
+
+	if (stat.isFile()) {
+		return {directory: path.dirname(resolvedPath), filePath: resolvedPath};
+	}
+
+	throw new Error(`Model path must be a file or directory: ${resolvedPath}`);
+}
+
+export function resolveAsrModelFiles(
+	model: 'whisper',
+	modelPath?: string,
+): {model: 'whisper'; files: WhisperModelFiles};
+export function resolveAsrModelFiles(
+	model: 'sensevoice',
+	modelPath?: string,
+): {model: 'sensevoice'; files: SenseVoiceModelFiles};
+export function resolveAsrModelFiles(
+	model: ModelName,
+	modelPath?: string,
+): AsrModelFiles;
+export function resolveAsrModelFiles(
+	model: ModelName,
+	modelPath?: string,
+): AsrModelFiles {
+	const {directory, filePath} = resolveModelDirectory(
+		modelPath,
+		getModelPath(model),
+	);
+
+	if (model === 'whisper') {
+		if (filePath) {
+			throw new Error(
+				'Custom whisper model path must be a directory containing tiny.en-encoder.int8.onnx, tiny.en-decoder.int8.onnx, and tiny.en-tokens.txt.',
+			);
+		}
+
+		const files = {
+			encoder: path.join(directory, 'tiny.en-encoder.int8.onnx'),
+			decoder: path.join(directory, 'tiny.en-decoder.int8.onnx'),
+			tokens: path.join(directory, 'tiny.en-tokens.txt'),
+		};
+
+		assertExistingFile(files.encoder, 'Whisper encoder model');
+		assertExistingFile(files.decoder, 'Whisper decoder model');
+		assertExistingFile(files.tokens, 'Whisper tokens file');
+
+		return {model, files};
+	}
+
+	const files = {
+		model: filePath ?? path.join(directory, 'model.int8.onnx'),
+		tokens: path.join(directory, 'tokens.txt'),
+	};
+
+	assertExistingFile(files.model, 'SenseVoice model');
+	assertExistingFile(files.tokens, 'SenseVoice tokens file');
+
+	return {model, files};
 }
 
 async function getFileSha256(filePath: string): Promise<string> {
@@ -269,6 +371,12 @@ const vadModelSha256 =
 
 export function getVadModelPath(): string {
 	return path.join(modelsDirectory, vadModelFile);
+}
+
+export function resolveVadModelFile(modelPath?: string): string {
+	const resolvedPath = modelPath ? path.resolve(modelPath) : getVadModelPath();
+	assertExistingFile(resolvedPath, 'VAD model');
+	return resolvedPath;
 }
 
 export async function ensureVadModel(): Promise<void> {

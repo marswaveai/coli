@@ -18,6 +18,9 @@ coli asr -j recording.wav
 # Select model
 coli asr --model whisper recording.wav
 
+# Use a local model file or directory without downloading
+coli asr --model-path /path/to/sensevoice/model.int8.onnx recording.wav
+
 # Specify language (sensevoice only)
 coli asr --language zh recording.wav
 ```
@@ -27,6 +30,7 @@ coli asr --language zh recording.wav
 ```
 -j, --json     Output result in JSON format
 --model        Model to use: whisper, sensevoice (default: sensevoice)
+--model-path   Path to a local model file or directory
 --language     Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
 ```
 
@@ -44,6 +48,9 @@ ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream -
 # JSON output (one JSON object per line)
 ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad --json
 
+# Use local ASR and VAD models without downloading
+ffmpeg -f avfoundation -i :0 -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --model-path /path/to/sensevoice/model.int8.onnx --vad --vad-model-path /path/to/silero_vad.onnx
+
 # From a file
 ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
 ```
@@ -53,6 +60,8 @@ ffmpeg -i podcast.m4a -ar 16000 -ac 1 -f s16le pipe:1 | coli asr-stream --vad
 ```
 -j, --json              Output each result as a JSON line
 --vad                   Enable voice activity detection
+--model-path <path>     Path to a local SenseVoice model file or directory
+--vad-model-path <path> Path to a local VAD model file
 --language <lang>       Language for sensevoice: auto, zh, en, ja, ko, yue (default: auto)
 --asr-interval-ms <ms>  Recognition interval in ms (default: 1000, ignored with --vad)
 ```
@@ -115,17 +124,24 @@ await runAsr(
 	{json: false, model: 'sensevoice'},
 );
 
+// Custom model path: no download, fails if local files are missing
+await runAsr(
+	{sampleRate: 16000, samples: myFloat32Array},
+	{json: false, model: 'sensevoice', modelPath: '/path/to/model.int8.onnx'},
+);
+
 // Deprecated: file path input (requires ffmpeg for non-WAV formats)
 await runAsr('recording.m4a', {json: false, model: 'sensevoice'});
 ```
 
 **Options**
 
-| Property   | Type                        | Description                                                                                         |
-| ---------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `json`     | `boolean`                   | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text                       |
-| `model`    | `'whisper' \| 'sensevoice'` | Which model to use for recognition                                                                  |
-| `language` | `SenseVoiceLanguage`        | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
+| Property    | Type                        | Description                                                                                             |
+| ----------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `json`      | `boolean`                   | Output JSON (with model name, tokens, timestamps, etc.) instead of plain text                           |
+| `model`     | `'whisper' \| 'sensevoice'` | Which model to use for recognition                                                                      |
+| `modelPath` | `string`                    | Path to a local model file or directory. Skips download and throws if required local files are missing. |
+| `language`  | `SenseVoiceLanguage`        | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`)     |
 
 ### `getModelPath(model)`
 
@@ -169,6 +185,7 @@ const audioSource = createAudioStream(); // AsyncIterable<Float32Array> of 16 kH
 
 // Interval-based (default) — emits partial results at a fixed interval
 await streamAsr(audioSource, {
+	modelPath: '/path/to/model.int8.onnx',
 	onResult(result) {
 		console.log(result.text, result.isFinal ? '(final)' : '(partial)');
 	},
@@ -185,7 +202,12 @@ await streamAsr(audioSource, {
 
 // VAD with custom parameters
 await streamAsr(audioSource, {
-	vad: {threshold: 0.4, minSilenceDuration: 0.3, maxSpeechDuration: 10},
+	vad: {
+		modelPath: '/path/to/silero_vad.onnx',
+		threshold: 0.4,
+		minSilenceDuration: 0.3,
+		maxSpeechDuration: 10,
+	},
 	onResult(result) {
 		console.log(result.text);
 	},
@@ -194,23 +216,25 @@ await streamAsr(audioSource, {
 
 **Options**
 
-| Property        | Type                                | Description                                                                                         |
-| --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result                                                       |
-| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)                                                          |
-| `language`      | `SenseVoiceLanguage`                | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`) |
-| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD                      |
-| `vad`           | `boolean \| VadOptions`             | Enable VAD. Pass `true` for defaults or a `VadOptions` object                                       |
+| Property        | Type                                | Description                                                                                                        |
+| --------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `onResult`      | `(result: AsrStreamResult) => void` | Callback invoked with each recognition result                                                                      |
+| `sampleRate`    | `number`                            | Audio sample rate in Hz (default: `16000`)                                                                         |
+| `language`      | `SenseVoiceLanguage`                | Language hint for sensevoice: `'auto'`, `'zh'`, `'en'`, `'ja'`, `'ko'`, `'yue'` (default: `'auto'`)                |
+| `modelPath`     | `string`                            | Path to a local SenseVoice model file or directory. Skips download and throws if required local files are missing. |
+| `asrIntervalMs` | `number`                            | Recognition interval in milliseconds (default: `1000`). Ignored when using VAD                                     |
+| `vad`           | `boolean \| VadOptions`             | Enable VAD. Pass `true` for defaults or a `VadOptions` object                                                      |
 
 **VadOptions**
 
-| Property               | Type      | Description                                                        |
-| ---------------------- | --------- | ------------------------------------------------------------------ |
-| `threshold`            | `number`  | Speech detection threshold (default: `0.5`)                        |
-| `minSpeechDuration`    | `number`  | Minimum speech duration in seconds (default: `0.25`)               |
-| `minSilenceDuration`   | `number`  | Minimum silence to end a segment in seconds (default: `0.5`)       |
-| `maxSpeechDuration`    | `number`  | Maximum speech segment duration in seconds (default: `15`)         |
-| `enableExternalBuffer` | `boolean` | Use external buffer for VAD speech segments (default: `undefined`) |
+| Property               | Type      | Description                                                           |
+| ---------------------- | --------- | --------------------------------------------------------------------- |
+| `modelPath`            | `string`  | Path to a local VAD model file. Skips download and throws if missing. |
+| `threshold`            | `number`  | Speech detection threshold (default: `0.5`)                           |
+| `minSpeechDuration`    | `number`  | Minimum speech duration in seconds (default: `0.25`)                  |
+| `minSilenceDuration`   | `number`  | Minimum silence to end a segment in seconds (default: `0.5`)          |
+| `maxSpeechDuration`    | `number`  | Maximum speech segment duration in seconds (default: `15`)            |
+| `enableExternalBuffer` | `boolean` | Use external buffer for VAD speech segments (default: `undefined`)    |
 
 **Result**
 
